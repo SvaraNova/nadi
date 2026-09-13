@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="480" viewBox="0 0 1280 480" role="img" aria-labelledby="title desc">
+  <title id="title">NADI — National Discovery Intelligence</title>
+  <desc id="desc">Discover economic signals before they become statistics. Abstract intersecting lines represent risk and opportunity; they are not financial data.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dedbd3" stroke-width="1"/></pattern>
+    <clipPath id="art"><rect x="790" y="0" width="490" height="480"/></clipPath>
+  </defs>
+  <rect width="1280" height="480" rx="12" fill="#f6f3ec"/>
+  <g clip-path="url(#art)">
+    <rect x="790" width="490" height="480" fill="url(#grid)"/>
+    <circle cx="1110" cy="245" r="172" fill="none" stroke="#d3cec3"/>
+    <circle cx="1110" cy="245" r="112" fill="none" stroke="#d3cec3"/>
+    <circle cx="1110" cy="245" r="52" fill="none" stroke="#d3cec3"/>
+    <path d="M800 302 H861 L891 281 L924 308 L966 226 L1008 251 L1045 182 L1084 204 L1133 128 L1180 149 L1227 91 H1280" fill="none" stroke="#236b61" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M800 193 H854 L896 217 L938 195 L974 257 L1018 234 L1060 299 L1101 277 L1149 341 L1192 321 L1240 376 H1280" fill="none" stroke="#843e50" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="1045" cy="182" r="7" fill="#236b61" stroke="#f6f3ec" stroke-width="3"/>
+    <circle cx="1149" cy="341" r="7" fill="#843e50" stroke="#f6f3ec" stroke-width="3"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="64" y="66" font-size="13" letter-spacing="3" fill="#625f58">INDONESIA / CORPORATE EVIDENCE / ECONOMIC DISCOVERY</text>
+    <text x="57" y="219" font-size="132" font-weight="700" letter-spacing="-7" fill="#242925">NADI<tspan fill="#236b61">.</tspan></text>
+    <text x="64" y="266" font-size="23" letter-spacing="1" fill="#424941">National Discovery Intelligence</text>
+    <text x="64" y="326" font-size="26" fill="#242925">Discover economic signals</text>
+    <text x="64" y="362" font-size="26" fill="#242925">before they become statistics.</text>
+    <line x1="64" y1="402" x2="732" y2="402" stroke="#d3cec3"/>
+    <circle cx="70" cy="437" r="5" fill="#a57836"/>
+    <text x="86" y="442" font-size="12" letter-spacing="2" fill="#625f58">ON DEVELOPMENT</text>
+    <text x="732" y="442" text-anchor="end" font-size="12" letter-spacing="2" fill="#625f58">SECTORS HACKATHON 2026</text>
+  </g>
+</svg>

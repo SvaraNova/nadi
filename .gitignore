@@ -1,0 +1,15 @@
+# Private team documentation is a separate repository.
+/docs/internal/
+# Local configuration and provider snapshots
+.env
+.env.*
+!.env.example
+!.env.sample
+/private-data/
+*.pem
+*.key
+# Generated files
+.DS_Store
+node_modules/
+.next/
+coverage/

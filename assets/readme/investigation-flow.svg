@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-labelledby="title desc">
+  <title id="title">From corporate evidence to an investigation brief</title>
+  <desc id="desc">Proposed workflow: preserve source records, calculate deterministic risk and opportunity signals, investigate supporting and contradictory evidence with bounded AI, and export a cited brief. Every stage retains a connection to its source.</desc>
+  <rect width="1280" height="340" rx="12" fill="#f6f3ec"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="40" y="46" font-size="12" letter-spacing="2" fill="#625f58">THE INVESTIGATION PATH</text>
+    <text x="1240" y="46" text-anchor="end" font-size="12" letter-spacing="2" fill="#625f58">PROPOSED WORKFLOW</text>
+    <g fill="#fffdf8" stroke="#d3cec3">
+      <rect x="40" y="78" width="276" height="164" rx="6"/>
+      <rect x="348" y="78" width="276" height="164" rx="6"/>
+      <rect x="656" y="78" width="276" height="164" rx="6"/>
+      <rect x="964" y="78" width="276" height="164" rx="6"/>
+    </g>
+    <g fill="none" stroke="#777b72" stroke-width="2"><path d="M322 160 H342 M336 154 L342 160 L336 166"/><path d="M630 160 H650 M644 154 L650 160 L644 166"/><path d="M938 160 H958 M952 154 L958 160 L952 166"/></g>
+    <g font-size="12" letter-spacing="2" fill="#236b61"><text x="62" y="110">01 / SOURCE</text><text x="370" y="110">02 / DETECT</text><text x="678" y="110">03 / INVESTIGATE</text><text x="986" y="110">04 / EXPLAIN</text></g>
+    <g font-size="23" font-weight="700" fill="#242925"><text x="62" y="150">Corporate evidence</text><text x="370" y="150">Reproducible signals</text><text x="678" y="150">Bounded AI inquiry</text><text x="986" y="150">A traceable brief</text></g>
+    <g font-size="16" fill="#625f58">
+      <text x="62" y="186">Preserve records, periods</text><text x="62" y="211">and reporting basis.</text>
+      <text x="370" y="186">Calculate risk, opportunity</text><text x="370" y="211">and sample coverage.</text>
+      <text x="678" y="186">Inspect drivers, alternatives</text><text x="678" y="211">and public context.</text>
+      <text x="986" y="186">Cite findings, expose gaps</text><text x="986" y="211">and frame next questions.</text>
+    </g>
+    <path d="M178 255 V270 H1102 V255 M486 255 V270 M794 255 V270" fill="none" stroke="#236b61" stroke-width="1.5"/>
+    <text x="640" y="307" text-anchor="middle" font-size="13" letter-spacing="1" fill="#236b61">SOURCE RECORD → CALCULATION → EVIDENCE → CLAIM</text>
+  </g>
+</svg>
