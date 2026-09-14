@@ -60,3 +60,40 @@ describe("Sectors client", () => {
     expect(second.payloadHash).toBe(first.payloadHash);
   });
 });
+
+
+describe("quarterly credit reservations", () => {
+  it("rejects a multi-quarter request before transport when it cannot fit", async () => {
+    let calls = 0;
+    const client = new SectorsClient({ apiKey: "synthetic-test", creditCap: 5, fetchImpl: async () => {
+      calls += 1;
+      return response(200, []);
+    }});
+    await expect(client.getQuarterlyFinancials("SYNT", "2026-03-31", 6)).rejects.toMatchObject({ code: "CREDIT_CAP_EXCEEDED" });
+    expect(calls).toBe(0);
+    expect(client.usage.creditsUsed).toBe(0);
+  });
+
+  it("reserves requested quarters on every attempt and never exceeds the cap", async () => {
+    let calls = 0;
+    const client = new SectorsClient({ apiKey: "synthetic-test", creditCap: 5, sleep: async () => undefined, fetchImpl: async () => {
+      calls += 1;
+      return response(503, {});
+    }});
+    await expect(client.getQuarterlyFinancials("SYNT", "2026-03-31", 3)).rejects.toMatchObject({ code: "CREDIT_CAP_EXCEEDED" });
+    expect(calls).toBe(1);
+    expect(client.usage.creditsUsed).toBe(3);
+  });
+
+  it("keeps conservative reservations for partial results and charges no cache credits", async () => {
+    let calls = 0;
+    const client = new SectorsClient({ apiKey: "synthetic-test", creditCap: 6, fetchImpl: async () => {
+      calls += 1;
+      return response(200, [{ date: "2026-03-31" }]);
+    }});
+    await client.getQuarterlyFinancials("SYNT", "2026-03-31", 6);
+    expect((await client.getQuarterlyFinancials("SYNT", "2026-03-31", 6)).cached).toBe(true);
+    expect(calls).toBe(1);
+    expect(client.usage.creditsUsed).toBe(6);
+  });
+});
