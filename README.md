@@ -16,7 +16,7 @@
 </p>
 
 > [!IMPORTANT]
-> **ON DEVELOPMENT** — NADI is at the specification and repository-structure stage. The experience below describes the planned MVP. A runnable application, live integration, and evaluated results are not yet available.
+> **ON DEVELOPMENT** — NADI has a runnable synthetic application foundation. Live integration, hosted authentication, and evaluated model-backed results are not yet available. See [the demo handoff](docs/demo-handoff.md) for verified local routes and limitations.
 
 ## Why NADI
 
@@ -143,7 +143,7 @@ Implementation proceeds through demonstrable delivery gates. All application gat
 
 ### Working with this repository
 
-The repository currently contains the product README, visual assets, and initial codebase directories. Installation and startup instructions will be added when executable scripts exist and have been verified.
+The repository contains a verified synthetic application foundation. Follow [docs/demo-handoff.md](docs/demo-handoff.md) for setup, observed routes, and capability boundaries.
 
 Synthetic development can proceed while live access is unresolved. A synthetic demonstration will remain distinct from completion of the live MVP.
 
