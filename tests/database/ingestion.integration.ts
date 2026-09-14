@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import { migrate } from "../../src/server/ingestion/migrate";
 import { runOne } from "../../src/server/ingestion/worker";
 import { persistSignalRun } from "../../src/server/repositories/signal-runs";
-import { readRun, readEvidence } from "../../src/server/repositories/evidence";
+import { readRun, readEvidence, readPublicComparison } from "../../src/server/repositories/evidence";
 
 test("persist/replay/revise/recover a complete synthetic ingestion", async () => {
   assert.ok(process.env.TEST_DATABASE_URL, "TEST_DATABASE_URL is required");
@@ -15,6 +15,10 @@ test("persist/replay/revise/recover a complete synthetic ingestion", async () =>
   let pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, options: `-c search_path=${schema},public` });
   try {
     await migrate(pool); await migrate(pool);
+    const comparison = await readPublicComparison(pool, "energy-coal", "2026-03-31");
+    assert.equal(comparison?.mapping.relation, "not_comparable");
+    assert.equal(comparison?.mapping.reviewer, "fchyoga");
+    assert.equal(comparison?.mapping.reviewedAt, "2026-09-14 08:39:13+00");
     const enqueue = async (key: string, scenario: string) => (await pool.query(
       "SELECT nadi_enqueue_job($1,'ingestion',$2) AS id", [key, { mode: "synthetic", scenario }])).rows[0].id;
     // Fault after some writes proves that neither snapshots nor observations leak.

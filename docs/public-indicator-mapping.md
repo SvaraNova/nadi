@@ -12,12 +12,13 @@ for Mining and Quarrying:
 - Definition: quarter-on-quarter growth of GDP by production industry at national level
 - Cohort mapping key: `energy-coal`
 
-The record is seeded in migration 007 with `not_comparable` and no reviewer.
+The initial record is seeded in migration 007 with `not_comparable`. Fitrian
+(`fchyoga`) reviewed the mapping on 2026-09-14 and migration 008 records that
+review as immutable mapping version `0.2`; the relation remains
+`not_comparable`.
 The series is broader and differently defined than listed-company corporate
-signals, so the application preserves the source context while withholding a
-directional comparison until the mapping is reviewed. A reviewer can record a
-reviewer name and timestamp only through a future controlled administration
-path; public data is immutable after insertion.
+directional comparison. Public data and mapping records are immutable after
+insertion; a later review is represented by a new mapping version.
 
 The BPS release states that Mining and Quarrying had the deepest q-to-q
 contraction in Q1 2026. This record is contextual and does not imply that the
