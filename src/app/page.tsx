@@ -8,6 +8,7 @@ export default function HomePage() {
       <p className="lede">The application foundation is ready. Data ingestion, deterministic discovery, evidence, and investigation will be delivered through the roadmap gates.</p>
       <p className="mode">Current mode: <strong>synthetic development foundation</strong></p>
       <Link href="/evidence">Explore synthetic evidence examples</Link>
+      <br /><Link href="/radar">Explore synthetic signal radar</Link>
     </main>
   );
 }
