@@ -10,16 +10,22 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:public-content": "node scripts/check-public-content.mjs"
+    "check:public-content": "node scripts/check-public-content.mjs",
+    "worker": "tsx src/worker.ts",
+    "test:ingestion": "tsx --test tests/database/ingestion.integration.ts"
   },
   "dependencies": {
     "decimal.js": "^10.4.3",
+    "lossless-json": "4.3.1",
     "next": "16.3.5",
+    "pg": "8.23.0",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "tsx": "4.23.13"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
+    "@types/pg": "8.23.1",
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
     "eslint": "9.29.0",
@@ -28,6 +34,6 @@
     "vitest": "3.2.4"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=20.19.0"
   }
 }
