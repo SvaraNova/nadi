@@ -5,3 +5,19 @@ main { max-width: 720px; margin: 0 auto; padding: 15vh 2rem; }
 h1 { font-size: clamp(2.5rem, 7vw, 5rem); line-height: .98; margin: 1rem 0 1.5rem; }
 .lede { color: #bdc9c0; font-size: 1.2rem; line-height: 1.6; }
 .mode { margin-top: 3rem; color: #91c7a0; }
+a { color: #ade4bd; text-underline-offset: .2em; }
+:focus-visible { outline: 3px solid #e9c36b; outline-offset: 4px; }
+.evidence { max-width: 960px; padding-top: 3rem; line-height: 1.6; }
+.evidence h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
+.evidence section { border-top: 1px solid #405348; margin-top: 2rem; padding-top: 1rem; }
+.scenarios { display: flex; flex-wrap: wrap; gap: 1rem; }
+.scenarios a { padding: .5rem; }
+.scenarios [aria-current] { background: #234631; border-radius: .25rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .75rem; text-align: left; border-bottom: 1px solid #405348; }
+caption { text-align: left; color: #bdc9c0; }
+dt { font-weight: bold; margin-top: 1rem; }
+dd { margin-left: 0; overflow-wrap: anywhere; }
+summary { cursor: pointer; padding: .75rem 0; }
+:target { outline: 2px solid #e9c36b; scroll-margin-top: 1rem; }
