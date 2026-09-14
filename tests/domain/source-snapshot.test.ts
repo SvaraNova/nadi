@@ -8,6 +8,14 @@ describe("source snapshots", () => {
     expect(snapshot.payloadHash).toBe("5c04394138a7d69c817a0116c09cc634363810898152162b56a471ffc02d402a");
   });
 
+  it.each([
+    "https://user:synthetic-test-only@example.test/quarterly/",
+    "https://example.test/quarterly/?token=synthetic-test-only",
+    "https://example.test/quarterly/#private",
+  ])("rejects credentials and unredacted URL metadata: %s", (sourceUrl) => {
+    expect(() => createSourceSnapshot({ mode: "synthetic", provider: "synthetic", requestPath: "/quarterly/", sourceUrl, payload: "{}", schemaVersion: "1" })).toThrow();
+  });
+
   it("rejects non-HTTPS source URLs and invalid paths", () => {
     expect(() => createSourceSnapshot({ mode: "synthetic", provider: "x", requestPath: "bad", sourceUrl: "http://example.test", payload: "{}", schemaVersion: "1" })).toThrow();
   });

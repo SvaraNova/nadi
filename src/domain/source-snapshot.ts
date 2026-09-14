@@ -27,8 +27,13 @@ type Input = Readonly<{
 const secretKey = /authorization|api[-_]?key|token|secret|password/i;
 
 export function createSourceSnapshot(input: Input): SourceSnapshot {
-  if (!input.provider.trim() || !input.requestPath.startsWith("/")) throw new Error("Invalid source snapshot identity");
-  if (!input.sourceUrl.startsWith("https://")) throw new Error("Source URL must use HTTPS");
+  if (!input.provider.trim() || !/^\/[^?#]*$/.test(input.requestPath) || !input.schemaVersion.trim()) {
+    throw new Error("Invalid source snapshot identity");
+  }
+  const url = new URL(input.sourceUrl);
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+    throw new Error("Source URL must use HTTPS without credentials, query or fragment");
+  }
   const retrievedAt = input.retrievedAt ?? new Date().toISOString();
   if (!Number.isFinite(Date.parse(retrievedAt))) throw new Error("Invalid retrieval timestamp");
   const redactedParams = Object.fromEntries(Object.entries(input.params ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => [key, secretKey.test(key) ? "[REDACTED]" : value]));
