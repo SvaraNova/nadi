@@ -26,6 +26,8 @@ try:
         sql(migration.read_text())
     sql((root / 'tests/database/durable-jobs.sql').read_text())
     print('PASS: deduplication, conflicts, recovery, stale lease rollback, cancellation, events')
+    sql((root / 'tests/database/ingestion-sources.sql').read_text())
+    print('PASS: source deduplication, precision, mode/request/account isolation, rejection persistence, atomic rollback')
     # First connection keeps its claimed row locked. Second must skip it.
     sql("SELECT nadi_enqueue_job('concurrency-1', 'synthetic', '{}'); SELECT nadi_enqueue_job('concurrency-2', 'synthetic', '{}')")
     proc = subprocess.Popen(['psql', '-X', url, '-v', 'ON_ERROR_STOP=1', '-At'],
