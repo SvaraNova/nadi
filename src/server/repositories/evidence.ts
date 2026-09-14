@@ -30,7 +30,7 @@ export async function readEvidence(pool: Pool, runId: string, companySignalId: s
   return { ...context, company, rows };
 }
 export async function readPublicComparison(pool: Pool, cohortKey: string, periodEnd: string) {
-  const row = (await pool.query(`SELECT i.*,m.cohort_key,m.relation,m.rationale,m.reviewer,m.reviewed_at::text,m.version FROM public_indicator i JOIN indicator_mapping m ON m.indicator_id=i.id WHERE m.cohort_key=$1 AND i.period_end=$2::date ORDER BY i.revision DESC LIMIT 1`, [cohortKey, periodEnd])).rows[0];
+  const row = (await pool.query(`SELECT i.*,m.cohort_key,m.relation,m.rationale,m.reviewer,m.reviewed_at::text,m.version FROM public_indicator i JOIN indicator_mapping m ON m.indicator_id=i.id WHERE m.cohort_key=$1 AND i.period_end=$2::date ORDER BY m.reviewed_at DESC NULLS LAST,m.version DESC,i.revision DESC LIMIT 1`, [cohortKey, periodEnd])).rows[0];
   if (!row) return null;
   const mapping: IndicatorMapping = { cohortKey: row.cohort_key, relation: row.relation, rationale: row.rationale, reviewer: row.reviewer, reviewedAt: row.reviewed_at, version: row.version };
   return { indicator: row, mapping, status: mapping.reviewer && mapping.reviewedAt ? mapping.relation : "not_comparable" };
