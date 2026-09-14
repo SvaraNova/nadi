@@ -91,7 +91,7 @@ export class SectorsClient {
     this.cacheTtlMs = options.cacheTtlMs ?? 24 * 60 * 60 * 1000;
     this.maxPages = options.maxPages ?? 100;
     if (!Number.isInteger(this.retries) || this.retries < 0) throw new SectorsError("INVALID_RETRY_CONFIG");
-    if (!Number.isInteger(this.creditCap) || this.creditCap < 1) throw new SectorsError("INVALID_CREDIT_CAP");
+    if (!Number.isSafeInteger(this.creditCap) || this.creditCap < 1) throw new SectorsError("INVALID_CREDIT_CAP");
   }
 
   get usage(): Readonly<{ creditsUsed: number; creditCap: number }> {
@@ -131,21 +131,21 @@ export class SectorsClient {
 
   getQuarterlyFinancials(symbol: string, reportDate: string, nQuarters = 1): Promise<ProviderResponse<readonly Record<string, unknown>[]>> {
     if (!validDate(reportDate)) throw new SectorsError("INVALID_REPORT_DATE", 400);
-    if (!Number.isInteger(nQuarters) || nQuarters < 1) throw new SectorsError("INVALID_QUARTER_COUNT", 400);
-    return this.request(`/financials/quarterly/${normalizeSymbol(symbol)}/`, { report_date: reportDate, approx: "false", n_quarters: String(nQuarters) });
+    if (!Number.isSafeInteger(nQuarters) || nQuarters < 1) throw new SectorsError("INVALID_QUARTER_COUNT", 400);
+    return this.request(`/financials/quarterly/${normalizeSymbol(symbol)}/`, { report_date: reportDate, approx: "false", n_quarters: String(nQuarters) }, nQuarters);
   }
 
-  private async request<T>(path: string, params: Readonly<Record<string, string>>): Promise<ProviderResponse<T>> {
+  private async request<T>(path: string, params: Readonly<Record<string, string>>, creditCost = 1): Promise<ProviderResponse<T>> {
     const key = `${path}?${stableParams(params)}`;
     const cached = this.cache.get(key);
     if (cached && cached.expiresAt > Date.now()) return { ...cached.response, cached: true } as ProviderResponse<T>;
     if (cached) this.cache.delete(key);
-    if (this.creditsUsed >= this.creditCap) throw new SectorsError("CREDIT_CAP_EXCEEDED");
+    if (creditCost > this.creditCap - this.creditsUsed) throw new SectorsError("CREDIT_CAP_EXCEEDED");
     const url = `${BASE_URL}${path}?${stableParams(params)}`;
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retries; attempt += 1) {
-      if (this.creditsUsed >= this.creditCap) throw new SectorsError("CREDIT_CAP_EXCEEDED");
-      this.creditsUsed += 1;
+      if (creditCost > this.creditCap - this.creditsUsed) throw new SectorsError("CREDIT_CAP_EXCEEDED");
+      this.creditsUsed += creditCost;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), this.timeoutMs);
       try {
