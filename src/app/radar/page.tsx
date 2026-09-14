@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StoredRadar from "./stored";
 import { calculateSignalRun, type SignalInput } from "../../domain/signal-run";
 
 const base = { operatingPnl: "10", operatingCashFlow: "10", totalDebt: "20", totalAssets: "100", basis: "standalone_quarter" as const };
@@ -11,7 +12,9 @@ const inputs: SignalInput[] = Array.from({ length: 5 }, (_, index) => ({
 }));
 const run = calculateSignalRun("synthetic-dataset-gate-2", inputs);
 
-export default function RadarPage() {
+export default async function RadarPage({ searchParams }: { searchParams: Promise<{ run?: string }> }) {
+  const { run: storedId } = await searchParams;
+  if (storedId) return <StoredRadar id={storedId} />;
   const cohort = run.cohortSignal;
   return <main className="evidence">
     <Link href="/">NADI home</Link>

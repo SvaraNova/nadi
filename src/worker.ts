@@ -2,13 +2,17 @@ import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
 import { migrate } from "./server/ingestion/migrate";
 import { runOne } from "./server/ingestion/worker";
+import { persistSignalRun } from "./server/repositories/signal-runs";
 
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_NOT_CONFIGURED");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2, connectionTimeoutMillis: 5000 });
   try {
-    const [command, argument] = process.argv.slice(2);
+    const [command, argument, target] = process.argv.slice(2);
     if (command === "migrate") { await migrate(pool); console.log("Migrations applied"); }
+    else if (command === "signals" && argument && target) {
+      console.log(JSON.stringify({ runId: await persistSignalRun(pool, argument, target) }));
+    }
     else if (command === "enqueue-synthetic") {
       const scenario = argument ?? "baseline";
       if (!["baseline","revision","missing"].includes(scenario)) throw new Error("INVALID_SCENARIO");
