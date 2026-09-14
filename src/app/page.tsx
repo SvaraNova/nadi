@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function HomePage() {
   return (
     <main>
@@ -5,6 +7,7 @@ export default function HomePage() {
       <h1>Discover the signal. Follow the evidence.</h1>
       <p className="lede">The application foundation is ready. Data ingestion, deterministic discovery, evidence, and investigation will be delivered through the roadmap gates.</p>
       <p className="mode">Current mode: <strong>synthetic development foundation</strong></p>
+      <Link href="/evidence">Explore synthetic evidence examples</Link>
     </main>
   );
 }
