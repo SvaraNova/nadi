@@ -1,5 +1,6 @@
 import type { Pool } from "pg";
 import type { CompanySignal, CohortSignal } from "../../domain/signals";
+import type { IndicatorMapping } from "../../domain/public-comparison";
 
 export type StoredRun = { id: string; dataset_id: string; method_version: string; config_hash: string; config_json: { target: string; prior: string; persistence: string } | null; cohort_result: CohortSignal; mode: string; manifest_hash: string; data_cutoff: string | null };
 export type StoredCompany = { id: string; company_id: string; symbol: string; result: CompanySignal };
@@ -27,6 +28,12 @@ export async function readEvidence(pool: Pool, runId: string, companySignalId: s
   const wanted = [...expected.prior_observation_ids.map((id: string) => `prior:${id}`), ...expected.current_observation_ids.map((id: string) => `current:${id}`)].sort();
   if (JSON.stringify(actual) !== JSON.stringify(wanted)) throw new Error("EVIDENCE_LINEAGE_MISMATCH");
   return { ...context, company, rows };
+}
+export async function readPublicComparison(pool: Pool, cohortKey: string, periodEnd: string) {
+  const row = (await pool.query(`SELECT i.*,m.cohort_key,m.relation,m.rationale,m.reviewer,m.reviewed_at::text,m.version FROM public_indicator i JOIN indicator_mapping m ON m.indicator_id=i.id WHERE m.cohort_key=$1 AND i.period_end=$2::date ORDER BY i.revision DESC LIMIT 1`, [cohortKey, periodEnd])).rows[0];
+  if (!row) return null;
+  const mapping: IndicatorMapping = { cohortKey: row.cohort_key, relation: row.relation, rationale: row.rationale, reviewer: row.reviewer, reviewedAt: row.reviewed_at, version: row.version };
+  return { indicator: row, mapping, status: mapping.reviewer && mapping.reviewedAt ? mapping.relation : "not_comparable" };
 }
 export function publicSourceUrl(value: string): string | null {
   try { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password && !url.search && !url.hash ? url.href : null; } catch { return null; }
