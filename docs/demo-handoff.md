@@ -44,7 +44,7 @@ method version `0.1` and decimal string calculations.
   requires starting Ollama locally and selecting an installed model; this
   handoff does not claim that a model is installed or that a live run succeeded.
 - Hosted authentication, adjacent-period persistence, and export remain future
-  hardening work.
+  hardening work. The local export endpoint is `GET /api/v1/investigations/{id}/export?format=markdown`; it only permits loopback access, returns a validated Markdown snapshot, and never starts a new model call. Hosted deployments must replace the local guard with real authentication before enabling shared access.
 
 ## Handoff checklist
 

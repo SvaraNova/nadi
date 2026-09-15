@@ -14,3 +14,8 @@ export async function appendInvestigationEvent(pool: Pool, investigationId: stri
 export async function finishInvestigation(pool: Pool, investigationId: string, status: InvestigationStatus, brief: InvestigationBrief | null, failureReason: string | null): Promise<void> {
   await pool.query("UPDATE investigation_run SET status=$2,brief=$3,failure_reason=$4,finished_at=now() WHERE id=$1", [investigationId, status, brief, failureReason]);
 }
+
+export async function readInvestigation(pool: Pool, investigationId: string): Promise<{ brief: InvestigationBrief; status: InvestigationStatus } | null> {
+  const row = (await pool.query<{ brief: InvestigationBrief | null; status: InvestigationStatus }>("SELECT brief,status FROM investigation_run WHERE id=$1", [investigationId])).rows[0];
+  return row?.brief ? { brief: row.brief, status: row.status } : null;
+}
