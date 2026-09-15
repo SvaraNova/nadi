@@ -12,5 +12,15 @@ describe("investigation export", () => {
     expect(markdown).toContain("Counterevidence: None recorded.");
     expect(markdown).not.toContain("\u0000");
   });
+  it("renders Indonesian headings and status when lang is id", () => {
+    const markdown = renderInvestigationMarkdown(brief, "2026-09-15T00:00:00Z", "id");
+    expect(markdown).toContain("Mode data: **DEMO SINTETIS**");
+    expect(markdown).toContain("## Status dan Cakupan");
+    expect(markdown).toContain("## Ringkasan Eksekutif");
+    expect(markdown).toContain("## Klaim Terverifikasi");
+    expect(markdown).toContain("Bukti pendukung: `e1`");
+    expect(markdown).toContain("Bukti sanggahan (counterevidence):");
+    expect(markdown).toContain("## Kesenjangan Data dan Perbandingan Publik");
+  });
   it("creates a safe contract filename", () => expect(investigationFilename("abc/../../def")).toBe("nadi-brief-abcdef.md"));
 });

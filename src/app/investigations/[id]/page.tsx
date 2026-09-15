@@ -7,6 +7,7 @@ import { AppShell } from "../../../components/layout/AppShell";
 import { DataModeBadge } from "../../../components/ui/DataModeBadge";
 import { EvidenceDrawer, type EvidenceRecord } from "../../../components/ui/EvidenceDrawer";
 import { IconTerminal, IconAlertTriangle, IconArrowRight, IconShieldCheck } from "../../../components/ui/Icons";
+import { useLanguage } from "../../../lib/i18n";
 import type { StoredInvestigationRecord } from "../../../server/investigation/investigation-service";
 import type { Route } from "next";
 
@@ -17,6 +18,8 @@ interface Props {
 export default function InvestigationWorkspacePage({ params }: Props) {
   const router = useRouter();
   const { id } = use(params);
+  const { language } = useLanguage();
+  const isId = language === "id";
 
   const [investigation, setInvestigation] = useState<StoredInvestigationRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,8 +112,10 @@ export default function InvestigationWorkspacePage({ params }: Props) {
       <AppShell dataMode="synthetic">
         <div style={{ padding: "64px 24px", textAlign: "center" }}>
           <div className="sidebar-logo-pulse" style={{ width: "16px", height: "16px", marginBottom: "16px" }} />
-          <h2>Loading investigation workspace...</h2>
-          <p style={{ color: "var(--slate-500)" }}>Retrieving pinned signal run context and claim lineage</p>
+          <h2>{isId ? "Memuat ruang kerja investigasi..." : "Loading investigation workspace..."}</h2>
+          <p style={{ color: "var(--slate-500)" }}>
+            {isId ? "Mengambil konteks putaran sinyal tersemat dan asal-usul klaim" : "Retrieving pinned signal run context and claim lineage"}
+          </p>
         </div>
       </AppShell>
     );
@@ -120,10 +125,10 @@ export default function InvestigationWorkspacePage({ params }: Props) {
     return (
       <AppShell dataMode="synthetic">
         <div className="card" style={{ padding: "48px", textAlign: "center" }}>
-          <h2>Investigation Not Found</h2>
-          <p>The requested investigation does not exist or has expired.</p>
+          <h2>{isId ? "Investigasi Tidak Ditemukan" : "Investigation Not Found"}</h2>
+          <p>{isId ? "Investigasi yang diminta tidak ada atau sudah kedaluwarsa." : "The requested investigation does not exist or has expired."}</p>
           <Link href={"/investigations" as Route} className="btn btn-primary">
-            Return to Investigations
+            {isId ? "Kembali ke Daftar Investigasi" : "Return to Investigations"}
           </Link>
         </div>
       </AppShell>
@@ -135,7 +140,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
       {/* Back link */}
       <div style={{ marginBottom: "16px" }}>
         <Link href={"/investigations" as Route} style={{ fontSize: "0.875rem", color: "var(--slate-600)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-          ← Back to Investigations
+          {isId ? "← Kembali ke Daftar Investigasi" : "← Back to Investigations"}
         </Link>
       </div>
 
@@ -146,15 +151,15 @@ export default function InvestigationWorkspacePage({ params }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
               <DataModeBadge mode={investigation.dataMode} size="sm" />
               <span className={`badge ${investigation.status === "completed" ? "badge-opportunity" : "badge-neutral"}`}>
-                STATUS: {investigation.status.toUpperCase()}
+                STATUS: {investigation.status === "completed" ? (isId ? "SELESAI" : "COMPLETED") : investigation.status === "running" ? (isId ? "BERJALAN" : "RUNNING") : (isId ? "SEBAGIAN" : "PARTIAL")}
               </span>
               <span style={{ fontSize: "0.75rem", color: "var(--slate-500)", fontFamily: "var(--font-mono)" }}>
                 ID: {investigation.id}
               </span>
             </div>
-            <h1>Bounded AI Investigation Workspace</h1>
+            <h1>{isId ? "Ruang Kerja Investigasi AI Terikat" : "Bounded AI Investigation Workspace"}</h1>
             <p className="page-subtitle">
-              Inquiry: “<strong>{investigation.question}</strong>”
+              {isId ? "Pertanyaan: " : "Inquiry: "}“<strong>{investigation.question}</strong>”
             </p>
           </div>
 
@@ -166,7 +171,9 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                 onClick={handleRunInvestigation}
                 disabled={executing}
               >
-                {executing ? "Running Investigation..." : "Execute Bounded Run"}
+                {executing
+                  ? (isId ? "Menjalankan Investigasi..." : "Running Investigation...")
+                  : (isId ? "Jalankan Proses Terikat" : "Execute Bounded Run")}
               </button>
             )}
             {investigation.status === "running" && (
@@ -175,7 +182,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                 className="btn btn-secondary"
                 onClick={handleCancel}
               >
-                Cancel Run
+                {isId ? "Batalkan Proses" : "Cancel Run"}
               </button>
             )}
             {investigation.status === "completed" && (
@@ -184,7 +191,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                 className="btn btn-primary"
                 onClick={() => router.push(`/briefs/new?investigationId=${investigation.id}` as Route)}
               >
-                Promote to Decision Brief →
+                {isId ? "Tingkatkan ke Ringkasan Keputusan →" : "Promote to Decision Brief →"}
               </button>
             )}
           </div>
@@ -196,51 +203,51 @@ export default function InvestigationWorkspacePage({ params }: Props) {
 
         {/* COLUMN 1: Pinned Context & Budgets */}
         <div className="card" style={{ position: "sticky", top: "76px" }}>
-          <div className="card-eyebrow">Deterministic Guardrails</div>
+          <div className="card-eyebrow">{isId ? "Batasan Perlindungan Deterministik" : "Deterministic Guardrails"}</div>
           <h2 style={{ fontSize: "1rem", margin: "0 0 14px", color: "var(--slate-950)" }}>
-            Pinned Investigation Context
+            {isId ? "Konteks Investigasi Tersemat" : "Pinned Investigation Context"}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "0.8125rem" }}>
             <div>
-              <span style={{ color: "var(--slate-500)" }}>Target Sector:</span>
+              <span style={{ color: "var(--slate-500)" }}>{isId ? "Sektor Sasaran:" : "Target Sector:"}</span>
               <div style={{ fontWeight: 700, color: "var(--slate-950)", fontSize: "0.9375rem" }}>
                 {investigation.cohortId}
               </div>
             </div>
 
             <div>
-              <span style={{ color: "var(--slate-500)" }}>Reporting Period:</span>
+              <span style={{ color: "var(--slate-500)" }}>{isId ? "Periode Pelaporan:" : "Reporting Period:"}</span>
               <div className="tabular-nums" style={{ fontWeight: 600 }}>{investigation.period}</div>
             </div>
 
             <div>
-              <span style={{ color: "var(--slate-500)" }}>Signal Run ID:</span>
+              <span style={{ color: "var(--slate-500)" }}>{isId ? "ID Putaran Sinyal:" : "Signal Run ID:"}</span>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", wordBreak: "break-all", background: "var(--slate-50)", padding: "4px 8px", borderRadius: "var(--radius-xs)", border: "1px solid var(--border-light)" }}>
                 {investigation.signalRunId}
               </div>
             </div>
 
             <div>
-              <span style={{ color: "var(--slate-500)" }}>Method Engine:</span>
-              <div><strong>Method v{investigation.methodVersion}</strong> (Deterministic)</div>
+              <span style={{ color: "var(--slate-500)" }}>{isId ? "Mesin Metode:" : "Method Engine:"}</span>
+              <div><strong>Method v{investigation.methodVersion}</strong> ({isId ? "Deterministik" : "Deterministic"})</div>
             </div>
 
             <div>
-              <span style={{ color: "var(--slate-500)" }}>Autonomous Model:</span>
+              <span style={{ color: "var(--slate-500)" }}>{isId ? "Model Otonom:" : "Autonomous Model:"}</span>
               <div><strong className="tabular-nums">{investigation.model}</strong></div>
             </div>
 
             <div style={{ paddingTop: "14px", borderTop: "1px solid var(--border-light)" }}>
               <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700, marginBottom: "8px" }}>
-                Active Guardrails &amp; Quota
+                {isId ? "Batasan & Kuota Aktif" : "Active Guardrails & Quota"}
               </div>
               <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--slate-700)", fontSize: "0.75rem", lineHeight: 1.6 }}>
-                <li>Tool Budget: <strong>12 calls max</strong> (6 used)</li>
-                <li>Execution Timeout: <strong>120 seconds</strong></li>
-                <li>Strict Allowlist: <strong>Active</strong></li>
-                <li>Citation Validation: <strong>Enforced</strong></li>
-                <li>Fabrication Protection: <strong>No external LLM data</strong></li>
+                <li>{isId ? "Anggaran Alat: Maks 12 panggilan (6 terpakai)" : "Tool Budget: 12 calls max (6 used)"}</li>
+                <li>{isId ? "Batas Waktu Eksekusi: 120 detik" : "Execution Timeout: 120 seconds"}</li>
+                <li>{isId ? "Daftar Izin Ketat: Aktif" : "Strict Allowlist: Active"}</li>
+                <li>{isId ? "Validasi Sitasi: Ditegakkan" : "Citation Validation: Enforced"}</li>
+                <li>{isId ? "Proteksi Fabrikasi: Tanpa data LLM eksternal" : "Fabrication Protection: No external LLM data"}</li>
               </ul>
             </div>
           </div>
@@ -250,11 +257,11 @@ export default function InvestigationWorkspacePage({ params }: Props) {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
             <div>
-              <div className="card-eyebrow">Execution Trace</div>
-              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Investigation Timeline</h2>
+              <div className="card-eyebrow">{isId ? "Jejak Eksekusi" : "Execution Trace"}</div>
+              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{isId ? "Lini Masa Investigasi" : "Investigation Timeline"}</h2>
             </div>
             <span className="badge badge-neutral">
-              {investigation.events.length} Events
+              {isId ? `${investigation.events.length} Peristiwa` : `${investigation.events.length} Events`}
             </span>
           </div>
 
@@ -269,14 +276,14 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                     {ev.tool ? (
                       <>
                         <IconTerminal size={13} />
-                        Tool: {ev.tool}
+                        {isId ? "Alat: " : "Tool: "}{ev.tool}
                       </>
                     ) : (
                       ev.type.replace(/_/g, " ")
                     )}
                   </span>
                   <span className="tabular-nums" style={{ fontSize: "0.6875rem", color: "var(--slate-500)" }}>
-                    {new Date(ev.at).toLocaleTimeString()}
+                    {new Date(ev.at).toLocaleTimeString(isId ? "id-ID" : "en-US")}
                   </span>
                 </div>
                 <div style={{ fontSize: "0.8125rem", color: "var(--slate-800)", lineHeight: 1.4 }}>
@@ -291,29 +298,29 @@ export default function InvestigationWorkspacePage({ params }: Props) {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
             <div>
-              <div className="card-eyebrow">Evidence Grounding</div>
-              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Structured Findings &amp; Claims</h2>
+              <div className="card-eyebrow">{isId ? "Landasan Bukti" : "Evidence Grounding"}</div>
+              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{isId ? "Temuan Terstruktur & Klaim" : "Structured Findings & Claims"}</h2>
             </div>
-            <span className="badge badge-opportunity">Claims Verified</span>
+            <span className="badge badge-opportunity">{isId ? "Klaim Terverifikasi" : "Claims Verified"}</span>
           </div>
 
           {!investigation.brief ? (
             <div style={{ textAlign: "center", padding: "40px 16px", color: "var(--slate-500)" }}>
-              <p>Run the investigation to generate structured, evidence-grounded findings.</p>
+              <p>{isId ? "Jalankan investigasi untuk menghasilkan temuan terstruktur berbasis bukti." : "Run the investigation to generate structured, evidence-grounded findings."}</p>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={handleRunInvestigation}
                 disabled={executing}
               >
-                {executing ? "Executing..." : "Start Bounded Run"}
+                {executing ? (isId ? "Mengeksekusi..." : "Executing...") : (isId ? "Mulai Proses Terikat" : "Start Bounded Run")}
               </button>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               {/* Executive Synthesis */}
               <div style={{ background: "var(--slate-50)", padding: "14px 16px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-light)" }}>
-                <div className="card-eyebrow">Executive Synthesis</div>
+                <div className="card-eyebrow">{isId ? "Sintesis Eksekutif" : "Executive Synthesis"}</div>
                 <p style={{ margin: "4px 0 0", fontSize: "0.875rem", lineHeight: 1.5, color: "var(--slate-900)" }}>
                   {investigation.brief.summary}
                 </p>
@@ -321,7 +328,9 @@ export default function InvestigationWorkspacePage({ params }: Props) {
 
               {/* Claims Breakdown */}
               <div>
-                <div className="card-eyebrow">Atomic Claims ({investigation.brief.claims.length})</div>
+                <div className="card-eyebrow">
+                  {isId ? `Klaim Teruji (${investigation.brief.claims.length})` : `Atomic Claims (${investigation.brief.claims.length})`}
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "6px" }}>
                   {investigation.brief.claims.map((claim, idx) => {
                     let badgeClass = "badge-neutral";
@@ -329,6 +338,15 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                     else if (claim.kind === "interpretation") badgeClass = "badge-live";
                     else if (claim.kind === "hypothesis") badgeClass = "badge-synthetic";
                     else if (claim.kind === "limitation") badgeClass = "badge-insufficient";
+
+                    const kindLabel =
+                      claim.kind === "observation"
+                        ? (isId ? "OBSERVASI" : "OBSERVATION")
+                        : claim.kind === "interpretation"
+                        ? (isId ? "INTERPRETASI" : "INTERPRETATION")
+                        : claim.kind === "hypothesis"
+                        ? (isId ? "HIPOTESIS" : "HYPOTHESIS")
+                        : (isId ? "BATASAN" : "LIMITATION");
 
                     return (
                       <div
@@ -343,7 +361,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                           <span className={`badge ${badgeClass}`}>
-                            {claim.kind.toUpperCase()}
+                            {kindLabel}
                           </span>
                           <div style={{ display: "flex", gap: "4px" }}>
                             {claim.evidenceIds.map((eid, eIdx) => (
@@ -352,7 +370,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                                 type="button"
                                 className="citation-tag"
                                 onClick={() => handleOpenCitation(eid)}
-                                title={`Click to inspect evidence record ${eid}`}
+                                title={isId ? `Klik untuk meninjau rekaman bukti ${eid}` : `Click to inspect evidence record ${eid}`}
                               >
                                 [E{eIdx + 1}]
                               </button>
@@ -372,17 +390,21 @@ export default function InvestigationWorkspacePage({ params }: Props) {
               {investigation.brief.contradictingEvidenceIds.length > 0 && (
                 <div style={{ padding: "12px 14px", background: "var(--warn-50)", border: "1px solid var(--warn-200)", borderRadius: "var(--radius-md)" }}>
                   <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--warn-900)", textTransform: "uppercase", marginBottom: "4px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <IconAlertTriangle size={13} /> Counterevidence &amp; Divergence Register
+                    <IconAlertTriangle size={13} /> {isId ? "Daftar Bukti Sanggahan & Divergensi" : "Counterevidence & Divergence Register"}
                   </div>
                   <div style={{ fontSize: "0.8125rem", color: "var(--warn-900)", lineHeight: 1.45 }}>
-                    <strong>BUMI.JK</strong> recorded revenue expansion (+2.17%), diverging from the sector-wide margin compression observed in AADI.JK and BYAN.JK.
+                    {isId
+                      ? <><strong>BUMI.JK</strong> mencatat ekspansi pendapatan (+2,17%), berbeda dengan kontraksi margin seluruh sektor yang diamati pada AADI.JK dan BYAN.JK.</>
+                      : <><strong>BUMI.JK</strong> recorded revenue expansion (+2.17%), diverging from the sector-wide margin compression observed in AADI.JK and BYAN.JK.</>}
                   </div>
                 </div>
               )}
 
               {/* Public Macro Comparison Context */}
               <div style={{ padding: "12px 14px", background: "var(--slate-50)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", fontSize: "0.8125rem", lineHeight: 1.45 }}>
-                <span style={{ fontWeight: 700, color: "var(--slate-800)" }}>Public Macro Context: </span>
+                <span style={{ fontWeight: 700, color: "var(--slate-800)" }}>
+                  {isId ? "Konteks Makro Publik: " : "Public Macro Context: "}
+                </span>
                 <span style={{ color: "var(--slate-700)" }}>{investigation.brief.publicComparison}</span>
               </div>
 
@@ -394,7 +416,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                   style={{ width: "100%" }}
                   onClick={() => router.push(`/briefs/new?investigationId=${investigation.id}` as Route)}
                 >
-                  Deliver Decision Brief →
+                  {isId ? "Kirimkan Ringkasan Keputusan →" : "Deliver Decision Brief →"}
                 </button>
               </div>
             </div>

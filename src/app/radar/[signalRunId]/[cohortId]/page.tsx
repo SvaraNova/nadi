@@ -11,6 +11,8 @@ import { EvidenceDrawer, type EvidenceRecord } from "../../../../components/ui/E
 import { IconArrowRight, IconSearch } from "../../../../components/ui/Icons";
 import { buildSectorSignalRuns, SECTOR_DEFINITIONS } from "../../../../domain/sectors-dataset";
 import type { Route } from "next";
+import { useLanguage } from "../../../../lib/i18n";
+import { formatScore, formatPercent, formatPercentagePoints } from "../../../../lib/formatters";
 
 interface Props {
   params: Promise<{ signalRunId: string; cohortId: string }>;
@@ -18,6 +20,8 @@ interface Props {
 
 export default function SignalDetailPage({ params }: Props) {
   const router = useRouter();
+  const { language, t } = useLanguage();
+  const isId = language === "id";
   const { signalRunId: _signalRunId, cohortId } = use(params);
 
   const allSectors = useMemo(() => buildSectorSignalRuns(), []);
@@ -27,15 +31,36 @@ export default function SignalDetailPage({ params }: Props) {
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRecord | null>(null);
   const [roleFilter, setRoleFilter] = useState<"all" | "supporting" | "contradicting" | "neutral">("all");
   const [analystQuestion, setAnalystQuestion] = useState(
-    "What factors are driving this financial pattern, and how robust is the signal across constituents?"
+    isId
+      ? "Faktor apa yang mendorong pola finansial ini, dan seberapa kuat sinyal tersebut di seluruh emiten?"
+      : "What factors are driving this financial pattern, and how robust is the signal across constituents?"
   );
 
-  const suggestedQuestions = [
-    "What primarily drives the financial pressure or margin contraction in this cohort?",
-    "How broadly is the pattern shared between large-caps and mid-tier producers?",
-    "Which specific companies contradict the dominant trend, and why?",
-    "Is the result heavily dominated by a single large constituent?",
-  ];
+  const suggestedQuestions = isId
+    ? [
+        "Apa faktor utama pendorong tekanan laba atau kontraksi margin di sektor ini?",
+        "Seberapa merata pola ini antara emiten berkapitalisasi besar dan menengah?",
+        "Emiten mana saja yang membantah tren utama pelemahan ini, dan apa alasannya?",
+        "Apakah kesimpulan sinyal ini didominasi oleh satu emiten raksasa saja?",
+      ]
+    : [
+        "What primarily drives the financial pressure or margin contraction in this cohort?",
+        "How broadly is the pattern shared between large-caps and mid-tier producers?",
+        "Which specific companies contradict the dominant trend, and why?",
+        "Is the result heavily dominated by a single large constituent?",
+      ];
+
+  const getSectorDisplayName = (s: { id: string; name: string }) => {
+    if (!isId) return s.name;
+    const nameMap: Record<string, string> = {
+      "energy-coal": "Energi — Pertambangan Batubara",
+      "consumer-staples": "Barang Konsumsi Pokok — Makanan & Minuman",
+      "basic-materials": "Bahan Baku & Kimia Dasar",
+      "industrial-logistics": "Transportasi & Logistik Industri",
+      "telecommunications": "Infrastruktur Telekomunikasi",
+    };
+    return nameMap[s.id] || s.name;
+  };
 
   const cohort = sector.cohortSignal;
   const companySignals = sector.signalRun.companySignals;
@@ -87,16 +112,16 @@ export default function SignalDetailPage({ params }: Props) {
     let calcResult = "—";
 
     if (metric === "revenue") {
-      calcResult = feat ? `${feat.revenueGrowth}%` : "—";
+      calcResult = feat ? formatPercent(feat.revenueGrowth, language).formatted : "—";
     } else if (metric === "operatingPnl") {
       formula = "100 * (current_pnl/current_rev - prior_pnl/prior_rev)";
-      calcResult = feat ? `${feat.operatingMarginChange}% pts` : "—";
+      calcResult = feat ? formatPercentagePoints(feat.operatingMarginChange, language).formatted : "—";
     } else if (metric === "operatingCashFlow") {
       formula = "100 * (current_ocf/current_rev - prior_ocf/prior_rev)";
-      calcResult = feat ? `${feat.operatingCashFlowMarginChange}% pts` : "—";
+      calcResult = feat ? formatPercentagePoints(feat.operatingCashFlowMarginChange, language).formatted : "—";
     } else if (metric === "totalDebt") {
       formula = "100 * (current_debt/current_assets - prior_debt/prior_assets)";
-      calcResult = feat ? `${feat.debtAssetsChange}% pts` : "—";
+      calcResult = feat ? formatPercentagePoints(feat.debtAssetsChange, language).formatted : "—";
     }
 
     setSelectedEvidence({
@@ -167,7 +192,7 @@ export default function SignalDetailPage({ params }: Props) {
       {/* Back Link */}
       <div style={{ marginBottom: "16px" }}>
         <Link href={"/radar" as Route} style={{ fontSize: "0.875rem", color: "var(--slate-600)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-          ← Back to Sector Radar
+          {isId ? "← Kembali ke Radar Sektor" : "← Back to Sector Radar"}
         </Link>
       </div>
 
@@ -183,12 +208,12 @@ export default function SignalDetailPage({ params }: Props) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
               <DataModeBadge mode="synthetic" size="sm" />
-              <span className="badge badge-snapshot">Method v0.1 Evaluated</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>Standalone Quarters</span>
+              <span className="badge badge-snapshot">{isId ? "Metode v0.1 Dievaluasi" : "Method v0.1 Evaluated"}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>{isId ? "Kuartal Mandiri" : "Standalone Quarters"}</span>
             </div>
-            <h1 style={{ fontSize: "1.85rem", margin: "0 0 4px" }}>{sector.name}</h1>
+            <h1 style={{ fontSize: "1.85rem", margin: "0 0 4px" }}>{getSectorDisplayName(sector)}</h1>
             <p style={{ margin: 0, fontSize: "0.9375rem", color: "var(--slate-600)" }}>
-              Reporting Period: <strong>Q1-2026 vs Q1-2025</strong> · Dataset ID: <code>{sector.datasetId}</code> · Signal Run: <code>{sector.runId}</code>
+              {isId ? "Periode Laporan:" : "Reporting Period:"} <strong>Q1-2026 vs Q1-2025</strong> · Dataset ID: <code>{sector.datasetId}</code> · Signal Run: <code>{sector.runId}</code>
             </p>
           </div>
           <div>
@@ -199,27 +224,37 @@ export default function SignalDetailPage({ params }: Props) {
         {/* 4 Summary Counters */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginTop: "20px", paddingTop: "18px", borderTop: "1px solid var(--border-light)" }}>
           <div>
-            <div className="card-eyebrow">Direction &amp; Scores</div>
+            <div className="card-eyebrow">{isId ? "Arah & Skor Sinyal" : "Direction & Scores"}</div>
             <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800 }}>
-              <span style={{ color: "var(--risk-700)" }}>Risk: {cohort.riskScore ?? "—"}</span> · <span style={{ color: "var(--opp-700)" }}>Opp: {cohort.opportunityScore ?? "—"}</span>
+              <span style={{ color: "var(--risk-700)" }} title={formatScore(cohort.riskScore, language).title}>
+                {isId ? "Risiko" : "Risk"}: {formatScore(cohort.riskScore, language).formatted}
+              </span>
+              {" · "}
+              <span style={{ color: "var(--opp-700)" }} title={formatScore(cohort.opportunityScore, language).title}>
+                {isId ? "Peluang" : "Opp"}: {formatScore(cohort.opportunityScore, language).formatted}
+              </span>
+            </div>
+          </div>
+          <div title={t("concept.riskBreadth.desc")} style={{ cursor: "help" }}>
+            <div className="card-eyebrow">{isId ? "Sebaran Sinyal" : "Signal Breadth"}</div>
+            <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--slate-900)" }}>
+              {cohort.riskBreadth
+                ? `${Math.round(Number(cohort.riskBreadth) * 100)}% ${isId ? "risiko" : "risk"}`
+                : cohort.opportunityBreadth
+                ? `${Math.round(Number(cohort.opportunityBreadth) * 100)}% ${isId ? "peluang" : "opp"}`
+                : "—"}
+            </div>
+          </div>
+          <div title={t("concept.coverage.desc")} style={{ cursor: "help" }}>
+            <div className="card-eyebrow">{isId ? "Cakupan Sampel" : "Sample Coverage"}</div>
+            <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--slate-900)" }}>
+              {cohort.eligibleCount} {isId ? "dari" : "of"} {cohort.totalMembers} ({Math.round(Number(cohort.coverage) * 100)}%)
             </div>
           </div>
           <div>
-            <div className="card-eyebrow">Signal Breadth</div>
+            <div className="card-eyebrow">{isId ? "Sampel Emiten" : "Constituent Sample"}</div>
             <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--slate-900)" }}>
-              {cohort.riskBreadth ? `${Math.round(Number(cohort.riskBreadth) * 100)}% risk` : cohort.opportunityBreadth ? `${Math.round(Number(cohort.opportunityBreadth) * 100)}% opp` : "—"}
-            </div>
-          </div>
-          <div>
-            <div className="card-eyebrow">Sample Coverage</div>
-            <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--slate-900)" }}>
-              {cohort.eligibleCount} of {cohort.totalMembers} ({Math.round(Number(cohort.coverage) * 100)}%)
-            </div>
-          </div>
-          <div>
-            <div className="card-eyebrow">Constituent Sample</div>
-            <div className="tabular-nums" style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--slate-900)" }}>
-              {sectorDef.companies.length} reporting entities
+              {sectorDef.companies.length} {isId ? "entitas pelapor" : "reporting entities"}
             </div>
           </div>
         </div>
@@ -229,23 +264,25 @@ export default function SignalDetailPage({ params }: Props) {
       <section className="card" style={{ marginBottom: "28px" }} aria-labelledby="trend-heading">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
           <div>
-            <div className="card-eyebrow">Multi-Quarter Trend</div>
+            <div className="card-eyebrow">{isId ? "Tren Multi-Kuartal" : "Multi-Quarter Trend"}</div>
             <h2 id="trend-heading" style={{ margin: 0 }}>
-              Historical Signal Trajectory (5 Observed Quarters)
+              {isId ? "Trajektori Sinyal Historis (5 Kuartal Terpantau)" : "Historical Signal Trajectory (5 Observed Quarters)"}
             </h2>
             <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", marginTop: "2px" }}>
-              Units: Signal Score (0–100 Heuristic, Method v0.1) · Source: IDX Audited Disclosures via Sectors API
+              {isId
+                ? "Satuan: Skor Sinyal (Skala Heuristik 0–100, Metode v0.1) · Sumber: Keterbukaan IDX Teraudit via Sectors API"
+                : "Units: Signal Score (0–100 Heuristic, Method v0.1) · Source: IDX Audited Disclosures via Sectors API"}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.75rem" }}>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--risk-700)", fontWeight: 700 }}>
                 <span style={{ width: "12px", height: "3px", background: "var(--risk-600)", display: "inline-block" }} />
-                Risk Score
+                {isId ? "Skor Risiko" : "Risk Score"}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--opp-700)", fontWeight: 700 }}>
                 <span style={{ width: "12px", height: "3px", background: "var(--opp-600)", display: "inline-block" }} />
-                Opportunity Score
+                {isId ? "Skor Peluang" : "Opportunity Score"}
               </span>
             </div>
           </div>
@@ -256,7 +293,9 @@ export default function SignalDetailPage({ params }: Props) {
           <svg width="100%" height="100%" viewBox="0 0 800 160" preserveAspectRatio="none" style={{ overflow: "visible" }}>
             {/* Grid baselines */}
             <line x1="0" y1="87" x2="800" y2="87" stroke="var(--slate-300)" strokeDasharray="3,3" strokeWidth="1" />
-            <text x="5" y="82" fill="var(--slate-400)" fontSize="10" fontFamily="var(--font-mono)">50.0 Critical Signal Action Baseline</text>
+            <text x="5" y="82" fill="var(--slate-400)" fontSize="10" fontFamily="var(--font-mono)">
+              {isId ? "50,0 Garis Batas Ambang Tindakan Sinyal Kritis" : "50.0 Critical Signal Action Baseline"}
+            </text>
 
             {/* Opportunity line & points */}
             <polyline
@@ -307,28 +346,63 @@ export default function SignalDetailPage({ params }: Props) {
           </svg>
         </div>
 
-        <div style={{ fontSize: "0.8125rem", color: "var(--slate-500)", display: "flex", justifyContent: "space-between" }}>
-          <span>Notice: Observed quarterly signal score progression. Gaps in reported data are preserved without synthetic interpolation.</span>
-          <span className="tabular-nums">Base: Q1-2025 → Target: Q1-2026</span>
+        {/* Accessible Data Table Equivalent for Screen Readers & Mobile (SLC Quality) */}
+        <div style={{ background: "var(--slate-100)", borderRadius: "var(--radius-sm)", padding: "10px 14px", marginBottom: "12px" }}>
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-700)", marginBottom: "6px" }}>
+            {isId ? "Tabel Data Alternatif Trajektori (Ramah Aksesibilitas):" : "Accessible Trajectory Data Table Equivalent:"}
+          </div>
+          <table style={{ width: "100%", fontSize: "0.8125rem" }}>
+            <thead>
+              <tr>
+                <th scope="col" style={{ textAlign: "left", padding: "4px 8px" }}>{isId ? "Kuartal" : "Quarter"}</th>
+                <th scope="col" style={{ textAlign: "left", padding: "4px 8px" }}>{isId ? "Fase" : "Phase"}</th>
+                <th scope="col" style={{ textAlign: "right", padding: "4px 8px" }}>{isId ? "Skor Risiko" : "Risk Score"}</th>
+                <th scope="col" style={{ textAlign: "right", padding: "4px 8px" }}>{isId ? "Skor Peluang" : "Opp Score"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trajectoryPoints.map((pt) => (
+                <tr key={pt.period}>
+                  <td style={{ padding: "4px 8px" }}>{pt.period}</td>
+                  <td style={{ padding: "4px 8px" }}>{pt.label}</td>
+                  <td style={{ textAlign: "right", color: "var(--risk-700)", fontWeight: 700, padding: "4px 8px" }}>{pt.risk}</td>
+                  <td style={{ textAlign: "right", color: "var(--opp-700)", fontWeight: 700, padding: "4px 8px" }}>{pt.opp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ fontSize: "0.8125rem", color: "var(--slate-500)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+          <span>
+            {isId
+              ? "Catatan: Perkembangan skor sinyal kuartalan yang diamati. Ketiadaan data dipertahankan tanpa manipulasi."
+              : "Notice: Observed quarterly signal score progression. Gaps in reported data are preserved without synthetic interpolation."}
+          </span>
+          <span className="tabular-nums">
+            {isId ? "Basis: Q1-2025 → Target: Q1-2026" : "Base: Q1-2025 → Target: Q1-2026"}
+          </span>
         </div>
       </section>
 
       {/* 3. Deterministic Driver Decomposition */}
       <section className="card" style={{ marginBottom: "28px" }} aria-labelledby="drivers-heading">
-        <div className="card-eyebrow">Method v0.1 Decomposition</div>
-        <h2 id="drivers-heading">Deterministic Driver Decomposition</h2>
+        <div className="card-eyebrow">{isId ? "Dekomposisi Metode v0.1" : "Method v0.1 Decomposition"}</div>
+        <h2 id="drivers-heading">{isId ? "Dekomposisi Faktor Finansial Deterministik" : "Deterministic Driver Decomposition"}</h2>
         <p style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "0 0 18px" }}>
-          Four fundamental financial drivers evaluated via strict decimal arithmetic. Each driver earns 25 points if its threshold condition is triggered.
+          {isId
+            ? "Empat indikator keuangan fundamental dievaluasi secara matematis. Setiap indikator memberikan 25 poin jika kondisi ambang batas terpenuhi."
+            : "Four fundamental financial drivers evaluated via strict decimal arithmetic. Each driver earns 25 points if its threshold condition is triggered."}
         </p>
 
         <div className="grid-4">
           {/* Driver 1 */}
           <div className="card" style={{ background: "var(--slate-50)", border: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-500)", textTransform: "uppercase" }}>
-              1. Revenue Growth (YoY)
+              {isId ? "1. Pertumbuhan Pendapatan (YoY)" : "1. Revenue Growth (YoY)"}
             </div>
             <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "4px 0 10px" }}>
-              Threshold: &le; -10% (Risk) / &ge; +10% (Opp)
+              {isId ? "Ambang: ≤ -10% (Risiko) / ≥ +10% (Peluang)" : "Threshold: ≤ -10% (Risk) / ≥ +10% (Opp)"}
             </div>
             <div style={{ marginBottom: "10px" }}>
               <div className="progress-track">
@@ -338,11 +412,15 @@ export default function SignalDetailPage({ params }: Props) {
             <div style={{ fontSize: "0.875rem" }}>
               <strong>Status:</strong>{" "}
               {cohort.label === "risk" ? (
-                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>Triggered Risk (-21.4% YoY)</span>
+                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Risiko (−21,4% YoY)" : "Triggered Risk (-21.4% YoY)"}
+                </span>
               ) : cohort.label === "opportunity" ? (
-                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>Triggered Opportunity</span>
+                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Peluang" : "Triggered Opportunity"}
+                </span>
               ) : (
-                <span>Within neutral band</span>
+                <span>{isId ? "Dalam batas normal" : "Within neutral band"}</span>
               )}
             </div>
           </div>
@@ -350,10 +428,10 @@ export default function SignalDetailPage({ params }: Props) {
           {/* Driver 2 */}
           <div className="card" style={{ background: "var(--slate-50)", border: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-500)", textTransform: "uppercase" }}>
-              2. Operating Margin &Delta;
+              {isId ? "2. Perubahan Margin Operasional" : "2. Operating Margin Δ"}
             </div>
             <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "4px 0 10px" }}>
-              Threshold: &le; -2.0% pts (Risk) / &ge; +2.0% pts (Opp)
+              {isId ? "Ambang: ≤ -2,0 pp (Risiko) / ≥ +2,0 pp (Peluang)" : "Threshold: ≤ -2.0 pp (Risk) / ≥ +2.0 pp (Opp)"}
             </div>
             <div style={{ marginBottom: "10px" }}>
               <div className="progress-track">
@@ -363,11 +441,15 @@ export default function SignalDetailPage({ params }: Props) {
             <div style={{ fontSize: "0.875rem" }}>
               <strong>Status:</strong>{" "}
               {cohort.label === "risk" ? (
-                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>Triggered Risk (-3.8% pts)</span>
+                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Risiko (−3,8 pp)" : "Triggered Risk (-3.8 pp)"}
+                </span>
               ) : cohort.label === "opportunity" ? (
-                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>Triggered Opportunity (+2.4% pts)</span>
+                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Peluang (+2,4 pp)" : "Triggered Opportunity (+2.4 pp)"}
+                </span>
               ) : (
-                <span>Mixed / compressed</span>
+                <span>{isId ? "Bervariasi / tertekan" : "Mixed / compressed"}</span>
               )}
             </div>
           </div>
@@ -375,10 +457,10 @@ export default function SignalDetailPage({ params }: Props) {
           {/* Driver 3 */}
           <div className="card" style={{ background: "var(--slate-50)", border: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-500)", textTransform: "uppercase" }}>
-              3. OCF Margin &Delta;
+              {isId ? "3. Perubahan Margin Arus Kas (OCF)" : "3. OCF Margin Δ"}
             </div>
             <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "4px 0 10px" }}>
-              Threshold: &le; -3.0% pts (Risk) / &ge; +3.0% pts (Opp)
+              {isId ? "Ambang: ≤ -3,0 pp (Risiko) / ≥ +3,0 pp (Peluang)" : "Threshold: ≤ -3.0 pp (Risk) / ≥ +3.0 pp (Opp)"}
             </div>
             <div style={{ marginBottom: "10px" }}>
               <div className="progress-track">
@@ -388,11 +470,15 @@ export default function SignalDetailPage({ params }: Props) {
             <div style={{ fontSize: "0.875rem" }}>
               <strong>Status:</strong>{" "}
               {cohort.label === "risk" ? (
-                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>Triggered Risk (-4.1% pts)</span>
+                <span style={{ color: "var(--risk-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Risiko (−4,1 pp)" : "Triggered Risk (-4.1 pp)"}
+                </span>
               ) : cohort.label === "opportunity" ? (
-                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>Triggered Opportunity (+3.2% pts)</span>
+                <span style={{ color: "var(--opp-700)", fontWeight: 700 }}>
+                  {isId ? "Memicu Peluang (+3,2 pp)" : "Triggered Opportunity (+3.2 pp)"}
+                </span>
               ) : (
-                <span>Neutral cash conversion</span>
+                <span>{isId ? "Konversi kas netral" : "Neutral cash conversion"}</span>
               )}
             </div>
           </div>
@@ -400,10 +486,10 @@ export default function SignalDetailPage({ params }: Props) {
           {/* Driver 4 */}
           <div className="card" style={{ background: "var(--slate-50)", border: "1px solid var(--border-light)" }}>
             <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-500)", textTransform: "uppercase" }}>
-              4. Debt-to-Assets &Delta;
+              {isId ? "4. Perubahan Utang terhadap Aset" : "4. Debt-to-Assets Δ"}
             </div>
             <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "4px 0 10px" }}>
-              Threshold: &ge; +5.0% pts (Risk) / &le; -5.0% pts (Opp)
+              {isId ? "Ambang: ≥ +5,0 pp (Risiko) / ≤ -5,0 pp (Peluang)" : "Threshold: ≥ +5.0 pp (Risk) / ≤ -5.0 pp (Opp)"}
             </div>
             <div style={{ marginBottom: "10px" }}>
               <div className="progress-track">
@@ -413,9 +499,13 @@ export default function SignalDetailPage({ params }: Props) {
             <div style={{ fontSize: "0.875rem" }}>
               <strong>Status:</strong>{" "}
               {cohort.label === "risk" ? (
-                <span style={{ color: "var(--slate-700)" }}>Stable (+1.8% pts, Sub-threshold)</span>
+                <span style={{ color: "var(--slate-700)" }}>
+                  {isId ? "Stabil (+1,8 pp, di bawah ambang)" : "Stable (+1.8 pp, Sub-threshold)"}
+                </span>
               ) : (
-                <span style={{ color: "var(--slate-600)" }}>Stable leverage</span>
+                <span style={{ color: "var(--slate-600)" }}>
+                  {isId ? "Rasio utang stabil" : "Stable leverage"}
+                </span>
               )}
             </div>
           </div>
@@ -426,9 +516,11 @@ export default function SignalDetailPage({ params }: Props) {
       <section className="card" style={{ marginBottom: "28px" }} aria-labelledby="constituents-heading">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
           <div>
-            <div className="card-eyebrow">Constituent Breakdown</div>
+            <div className="card-eyebrow">{isId ? "Rincian Emiten Penyusun" : "Constituent Breakdown"}</div>
             <h2 id="constituents-heading" style={{ margin: 0 }}>
-              Constituent Evidence Distribution ({filteredCompanies.length} entities)
+              {isId
+                ? `Distribusi Bukti Emiten Penyusun (${filteredCompanies.length} entitas)`
+                : `Constituent Evidence Distribution (${filteredCompanies.length} entities)`}
             </h2>
           </div>
           {/* Role Filter Chips */}
@@ -438,49 +530,51 @@ export default function SignalDetailPage({ params }: Props) {
               className={`chip ${roleFilter === "all" ? "active" : ""}`}
               onClick={() => setRoleFilter("all")}
             >
-              All ({companiesCategorized.length})
+              {isId ? "Semua" : "All"} ({companiesCategorized.length})
             </button>
             <button
               type="button"
               className={`chip ${roleFilter === "supporting" ? "active" : ""}`}
               onClick={() => setRoleFilter("supporting")}
             >
-              Supporting ({companiesCategorized.filter((c) => c.classification === "supporting").length})
+              {isId ? "Mendukung" : "Supporting"} ({companiesCategorized.filter((c) => c.classification === "supporting").length})
             </button>
             <button
               type="button"
               className={`chip ${roleFilter === "contradicting" ? "active" : ""}`}
               onClick={() => setRoleFilter("contradicting")}
             >
-              Contradicting ({companiesCategorized.filter((c) => c.classification === "contradicting").length})
+              {isId ? "Sanggahan (Counterevidence)" : "Contradicting"} ({companiesCategorized.filter((c) => c.classification === "contradicting").length})
             </button>
             <button
               type="button"
               className={`chip ${roleFilter === "neutral" ? "active" : ""}`}
               onClick={() => setRoleFilter("neutral")}
             >
-              Neutral ({companiesCategorized.filter((c) => c.classification === "neutral").length})
+              {isId ? "Netral" : "Neutral"} ({companiesCategorized.filter((c) => c.classification === "neutral").length})
             </button>
           </div>
         </div>
 
         <p style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "0 0 16px" }}>
-          Inspect supporting, contradicting, and neutral constituents. Click any metric pill to open its verified source lineage in the Evidence Drawer.
+          {isId
+            ? "Periksa emiten pendukung, sanggahan (counterevidence), dan netral. Klik nilai metrik untuk membuka asal-usul data (lineage) terverifikasi di Laci Bukti."
+            : "Inspect supporting, contradicting, and neutral constituents. Click any metric pill to open its verified source lineage in the Evidence Drawer."}
         </p>
 
         <div className="table-container" style={{ margin: 0 }}>
           <table>
             <thead>
               <tr>
-                <th scope="col">Constituent Entity</th>
-                <th scope="col">Role Classification</th>
-                <th scope="col" style={{ width: "95px" }}>5-Q Trend</th>
-                <th scope="col" style={{ textAlign: "right" }}>Risk / Opp</th>
-                <th scope="col" style={{ textAlign: "right" }}>Revenue Growth</th>
-                <th scope="col" style={{ textAlign: "right" }}>Op Margin &Delta;</th>
-                <th scope="col" style={{ textAlign: "right" }}>OCF Margin &Delta;</th>
-                <th scope="col" style={{ textAlign: "right" }}>Debt/Assets &Delta;</th>
-                <th scope="col" style={{ textAlign: "right" }}>Evidence Lineage</th>
+                <th scope="col">{isId ? "Entitas Emiten" : "Constituent Entity"}</th>
+                <th scope="col">{isId ? "Klasifikasi Peran" : "Role Classification"}</th>
+                <th scope="col" style={{ width: "95px" }}>{isId ? "Tren 5-Kuartal" : "5-Q Trend"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Risiko / Peluang" : "Risk / Opp"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Pertumbuhan Pendapatan" : "Revenue Growth"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Δ Margin Operasi" : "Op Margin Δ"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Δ Margin Kas Operasi (OCF)" : "OCF Margin Δ"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Δ Utang/Aset" : "Debt/Assets Δ"}</th>
+                <th scope="col" style={{ textAlign: "right" }}>{isId ? "Asal-usul Bukti" : "Evidence Lineage"}</th>
               </tr>
             </thead>
             <tbody>
@@ -493,6 +587,13 @@ export default function SignalDetailPage({ params }: Props) {
                     ? "badge-opportunity"
                     : "badge-neutral";
 
+                const roleLabel =
+                  c.classification === "supporting"
+                    ? (isId ? "MENDUKUNG" : "SUPPORTING")
+                    : c.classification === "contradicting"
+                    ? (isId ? "SANGGAHAN" : "CONTRADICTING")
+                    : (isId ? "NETRAL" : "NEUTRAL");
+
                 const compSparkData = c.classification === "supporting"
                   ? [25, 38, 55, 68, Math.max(c.signal?.riskScore || 0, c.signal?.opportunityScore || 0) || 75]
                   : c.classification === "contradicting"
@@ -504,6 +605,13 @@ export default function SignalDetailPage({ params }: Props) {
                   ? (cohort.label === "risk" ? "var(--opp-600)" : "var(--risk-600)")
                   : "var(--slate-400)";
 
+                const revFormatted = feat ? formatPercent(feat.revenueGrowth, language) : null;
+                const opMarginFormatted = feat ? formatPercentagePoints(feat.operatingMarginChange, language) : null;
+                const ocfMarginFormatted = feat ? formatPercentagePoints(feat.operatingCashFlowMarginChange, language) : null;
+                const debtAssetsFormatted = feat ? formatPercentagePoints(feat.debtAssetsChange, language) : null;
+                const riskFormatted = c.signal?.riskScore !== undefined ? formatScore(c.signal.riskScore, language) : null;
+                const oppFormatted = c.signal?.opportunityScore !== undefined ? formatScore(c.signal.opportunityScore, language) : null;
+
                 return (
                   <tr key={c.symbol}>
                     <td>
@@ -514,7 +622,7 @@ export default function SignalDetailPage({ params }: Props) {
                     </td>
                     <td>
                       <span className={`badge ${roleBadge} btn-sm`}>
-                        {c.classification.toUpperCase()}
+                        {roleLabel}
                       </span>
                     </td>
                     <td>
@@ -524,57 +632,63 @@ export default function SignalDetailPage({ params }: Props) {
                         width={80}
                         height={20}
                         fill
-                        ariaLabel={`5-quarter trend for ${c.symbol}`}
+                        ariaLabel={isId ? `Tren 5 kuartal untuk ${c.symbol}` : `5-quarter trend for ${c.symbol}`}
                       />
                     </td>
                     <td className="tabular-nums" style={{ fontWeight: 700, textAlign: "right" }}>
-                      <span style={{ color: "var(--risk-700)" }}>{c.signal?.riskScore ?? "—"}</span> / <span style={{ color: "var(--opp-700)" }}>{c.signal?.opportunityScore ?? "—"}</span>
+                      <span style={{ color: "var(--risk-700)" }} title={riskFormatted ? `Nilai eksak / Exact: ${riskFormatted.raw}` : undefined}>
+                        {riskFormatted ? riskFormatted.formatted : "—"}
+                      </span>
+                      {" / "}
+                      <span style={{ color: "var(--opp-700)" }} title={oppFormatted ? `Nilai eksak / Exact: ${oppFormatted.raw}` : undefined}>
+                        {oppFormatted ? oppFormatted.formatted : "—"}
+                      </span>
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right" }}>
-                      {feat ? (
+                      {revFormatted ? (
                         <button
                           type="button"
                           className="citation-tag"
                           onClick={() => handleOpenEvidence(c.symbol, "revenue", c.name)}
-                          title="Click to view revenue lineage"
+                          title={`${isId ? "Klik untuk melihat asal data pendapatan. Nilai eksak:" : "Click to view revenue lineage. Exact value:"} ${revFormatted.raw}`}
                         >
-                          {feat.revenueGrowth}%
+                          {revFormatted.formatted}
                         </button>
                       ) : "—"}
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right" }}>
-                      {feat ? (
+                      {opMarginFormatted ? (
                         <button
                           type="button"
                           className="citation-tag"
                           onClick={() => handleOpenEvidence(c.symbol, "operatingPnl", c.name)}
-                          title="Click to view operating margin lineage"
+                          title={`${isId ? "Klik untuk melihat asal data margin operasi. Nilai eksak:" : "Click to view operating margin lineage. Exact value:"} ${opMarginFormatted.raw}`}
                         >
-                          {feat.operatingMarginChange}%
+                          {opMarginFormatted.formatted}
                         </button>
                       ) : "—"}
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right" }}>
-                      {feat ? (
+                      {ocfMarginFormatted ? (
                         <button
                           type="button"
                           className="citation-tag"
                           onClick={() => handleOpenEvidence(c.symbol, "operatingCashFlow", c.name)}
-                          title="Click to view cash flow lineage"
+                          title={`${isId ? "Klik untuk melihat asal data arus kas operasi. Nilai eksak:" : "Click to view cash flow lineage. Exact value:"} ${ocfMarginFormatted.raw}`}
                         >
-                          {feat.operatingCashFlowMarginChange}%
+                          {ocfMarginFormatted.formatted}
                         </button>
                       ) : "—"}
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right" }}>
-                      {feat ? (
+                      {debtAssetsFormatted ? (
                         <button
                           type="button"
                           className="citation-tag"
                           onClick={() => handleOpenEvidence(c.symbol, "totalDebt", c.name)}
-                          title="Click to view debt/assets lineage"
+                          title={`${isId ? "Klik untuk melihat asal data utang/aset. Nilai eksak:" : "Click to view debt/assets lineage. Exact value:"} ${debtAssetsFormatted.raw}`}
                         >
-                          {feat.debtAssetsChange}%
+                          {debtAssetsFormatted.formatted}
                         </button>
                       ) : "—"}
                     </td>
@@ -584,7 +698,7 @@ export default function SignalDetailPage({ params }: Props) {
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleOpenEvidence(c.symbol, "revenue", c.name)}
                       >
-                        Inspect Lineage →
+                        {isId ? "Telusuri Asal Data →" : "Inspect Lineage →"}
                       </button>
                     </td>
                   </tr>
@@ -599,38 +713,46 @@ export default function SignalDetailPage({ params }: Props) {
       <section className="card" style={{ marginBottom: "28px" }} aria-labelledby="public-heading">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
           <div>
-            <div className="card-eyebrow">Macroeconomic Cross-Reference</div>
-            <h2 id="public-heading" style={{ margin: 0 }}>Official Public Indicator Context (BPS)</h2>
+            <div className="card-eyebrow">{isId ? "Korelasi Makroekonomi" : "Macroeconomic Cross-Reference"}</div>
+            <h2 id="public-heading" style={{ margin: 0 }}>
+              {isId ? "Konteks Indikator Publik Resmi (BPS)" : "Official Public Indicator Context (BPS)"}
+            </h2>
           </div>
-          <span className="badge badge-insufficient">Status: Not Comparable</span>
+          <span className="badge badge-insufficient">
+            {isId ? "Status: Tidak Dapat Dibandingkan Langsung" : "Status: Not Comparable"}
+          </span>
         </div>
         <p style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "0 0 16px" }}>
-          Official BPS (Badan Pusat Statistik) macroeconomic series reviewed for this cohort.
+          {isId
+            ? "Deret makroekonomi resmi BPS (Badan Pusat Statistik) yang ditelaah untuk kohort ini."
+            : "Official BPS (Badan Pusat Statistik) macroeconomic series reviewed for this cohort."}
         </p>
 
         <div style={{ background: "var(--slate-50)", padding: "18px 20px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-light)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--slate-950)" }}>
-                Quarterly GDP growth — Mining and Quarrying
+                {isId ? "Pertumbuhan PDB Kuartalan — Pertambangan & Penggalian" : "Quarterly GDP growth — Mining and Quarrying"}
               </div>
               <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", marginTop: "2px" }}>
-                Source: Badan Pusat Statistik (BPS - Statistics Indonesia) · Published: 2026-05-05
+                {isId
+                  ? "Sumber: Badan Pusat Statistik (BPS) · Tanggal Publikasi: 2026-05-05"
+                  : "Source: Badan Pusat Statistik (BPS - Statistics Indonesia) · Published: 2026-05-05"}
               </div>
             </div>
             <div>
-              <div className="tabular-nums" style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--risk-700)" }}>
-                -8.20% QoQ
+              <div className="tabular-nums" style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--risk-700)" }} title="Nilai eksak / Exact: -8.20%">
+                {isId ? "-8,20% QoQ" : "-8.20% QoQ"}
               </div>
             </div>
           </div>
 
           <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed var(--border-strong)", fontSize: "0.8125rem", color: "var(--slate-700)", lineHeight: 1.6 }}>
-            <strong>Human Reviewer Rationale (Reviewer: fchyoga, 2026-09-14):</strong>
+            <strong>{isId ? "Alasan Telaah Ahli (Penelaah: fchyoga, 2026-09-14):" : "Human Reviewer Rationale (Reviewer: fchyoga, 2026-09-14):"}</strong>
             <p style={{ margin: "4px 0 0" }}>
-              Corporate company signals and the national Mining and Quarrying GDP series differ in population, geography, definitions, and measurement.
-              Listed companies represent large-scale export operations, while national GDP includes informal, artisanal, and domestic regional mining.
-              Directional movement must be treated as context only; causality or direct alignment cannot be claimed without further econometric review.
+              {isId
+                ? "Sinyal keuangan emiten korporasi dan deret PDB Pertambangan & Penggalian nasional memiliki perbedaan mendasar dalam populasi, cakupan wilayah, definisi, dan metode pengukuran. Emiten tercatat mencerminkan operasi ekspor skala besar, sedangkan PDB nasional mencakup pertambangan rakyat, informal, dan tambang galian regional. Pergerakan arah hanya berfungsi sebagai konteks latar belakang; korelasi kausal atau perbandingan langsung tidak dapat diklaim tanpa kajian ekonometrik lebih lanjut."
+                : "Corporate company signals and the national Mining and Quarrying GDP series differ in population, geography, definitions, and measurement. Listed companies represent large-scale export operations, while national GDP includes informal, artisanal, and domestic regional mining. Directional movement must be treated as context only; causality or direct alignment cannot be claimed without further econometric review."}
             </p>
           </div>
         </div>
@@ -638,17 +760,22 @@ export default function SignalDetailPage({ params }: Props) {
 
       {/* 6. Bounded AI Investigation Launch Pad */}
       <section className="card" style={{ border: "2px solid var(--primary-600)" }} aria-labelledby="inv-heading">
-        <div className="card-eyebrow" style={{ color: "var(--primary-700)" }}>Bounded AI Agentic Workspace</div>
-        <h2 id="inv-heading" style={{ margin: 0 }}>Launch Bounded AI Investigation</h2>
+        <div className="card-eyebrow" style={{ color: "var(--primary-700)" }}>
+          {isId ? "Ruang Kerja Agen AI Terikat (Bounded)" : "Bounded AI Agentic Workspace"}
+        </div>
+        <h2 id="inv-heading" style={{ margin: 0 }}>
+          {isId ? "Jalankan Investigasi AI Terikat" : "Launch Bounded AI Investigation"}
+        </h2>
         <p style={{ fontSize: "0.875rem", color: "var(--slate-600)", margin: "4px 0 18px" }}>
-          Dispatch an autonomous investigator bound strictly to this pinned signal run, dataset ID, and tool allowlist.
-          The investigator verifies evidence, checks counterevidence, and produces validated claims with stable citations.
+          {isId
+            ? "Tugaskan investigator otonom yang terikat ketat pada putaran sinyal ini, dataset ID, dan daftar alat yang diizinkan. Investigator memverifikasi bukti, memeriksa bukti sanggahan (counterevidence), dan menghasilkan klaim teruji dengan sitasi yang stabil."
+            : "Dispatch an autonomous investigator bound strictly to this pinned signal run, dataset ID, and tool allowlist. The investigator verifies evidence, checks counterevidence, and produces validated claims with stable citations."}
         </p>
 
         <form onSubmit={handleStartInvestigation}>
           <div style={{ marginBottom: "16px" }}>
             <label htmlFor="question-input" style={{ display: "block", fontSize: "0.8125rem", fontWeight: 700, color: "var(--slate-700)", marginBottom: "6px" }}>
-              Analyst Investigation Inquiry:
+              {isId ? "Pertanyaan Investigasi Analis:" : "Analyst Investigation Inquiry:"}
             </label>
             <input
               id="question-input"
@@ -663,7 +790,7 @@ export default function SignalDetailPage({ params }: Props) {
 
           <div style={{ marginBottom: "20px" }}>
             <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "8px" }}>
-              Or choose a recommended analytical question:
+              {isId ? "Atau pilih pertanyaan analitis yang direkomendasikan:" : "Or choose a recommended analytical question:"}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {suggestedQuestions.map((sq, i) => (
@@ -681,10 +808,11 @@ export default function SignalDetailPage({ params }: Props) {
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "14px", borderTop: "1px solid var(--border-light)", flexWrap: "wrap", gap: "12px" }}>
             <div style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>
-              Bound context: <strong>{sector.id}</strong> · Run: <code>{sector.runId}</code> · Budget: <strong>12 tool calls max</strong>
+              {isId ? "Konteks terikat: " : "Bound context: "}
+              <strong>{sector.id}</strong> · {isId ? "Putaran: " : "Run: "}<code>{sector.runId}</code> · {isId ? "Batas anggaran: " : "Budget: "}<strong>{isId ? "Maks 12 panggilan alat" : "12 tool calls max"}</strong>
             </div>
             <button type="submit" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              Launch Bounded Investigation <IconArrowRight size={14} />
+              {isId ? "Jalankan Investigasi Terikat" : "Launch Bounded Investigation"} <IconArrowRight size={14} />
             </button>
           </div>
         </form>

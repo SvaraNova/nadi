@@ -15,6 +15,7 @@ import {
   IconSearch,
 } from "../ui/Icons";
 import type { Route } from "next";
+import { useLanguage } from "../../lib/i18n";
 
 interface Props {
   children: ReactNode;
@@ -30,6 +31,7 @@ export function AppShell({
   activePeriod = "Q1-2026 vs Q1-2025",
 }: Props) {
   const pathname = usePathname();
+  const { language, setLanguage, t } = useLanguage();
   const [activeRole, setActiveRole] = useState<"analyst" | "operator" | "admin">("analyst");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
 
@@ -45,26 +47,26 @@ export function AppShell({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Navigation structure with professional SVG icons
+  // Navigation structure with professional SVG icons and bilingual labels
   const navSections = [
     {
-      sectionTitle: "Discovery & Signals",
+      sectionTitle: t("nav.discovery"),
       items: [
-        { href: "/" as Route, label: "Overview Pulse", icon: <IconOverview size={17} /> },
-        { href: "/radar" as Route, label: "Sector Radar", icon: <IconRadar size={17} />, badge: "5 Cohorts" },
+        { href: "/" as Route, label: t("nav.overview"), icon: <IconOverview size={17} /> },
+        { href: "/radar" as Route, label: t("nav.radar"), icon: <IconRadar size={17} />, badge: language === "id" ? "5 Sektor" : "5 Cohorts" },
       ],
     },
     {
-      sectionTitle: "Deep Analysis",
+      sectionTitle: t("nav.deepAnalysis"),
       items: [
-        { href: "/investigations" as Route, label: "Investigations", icon: <IconInvestigation size={17} /> },
-        { href: "/briefs" as Route, label: "Decision Briefs", icon: <IconBrief size={17} />, badge: "v1.0" },
+        { href: "/investigations" as Route, label: t("nav.investigations"), icon: <IconInvestigation size={17} /> },
+        { href: "/briefs" as Route, label: t("nav.briefs"), icon: <IconBrief size={17} />, badge: "v1.0" },
       ],
     },
     {
-      sectionTitle: "Governance & Audit",
+      sectionTitle: t("nav.governance"),
       items: [
-        { href: "/data" as Route, label: "Data & Method", icon: <IconDataMethod size={17} /> },
+        { href: "/data" as Route, label: t("nav.dataMethod"), icon: <IconDataMethod size={17} /> },
       ],
     },
   ];
@@ -76,13 +78,13 @@ export function AppShell({
     ...pathSegments.map((segment, index) => {
       const url = `/${pathSegments.slice(0, index + 1).join("/")}` as Route;
       let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-      if (segment === "radar") label = "Sector Radar";
-      else if (segment === "investigations") label = "Investigations";
-      else if (segment === "briefs") label = "Decision Briefs";
-      else if (segment === "data") label = "Data & Method";
+      if (segment === "radar") label = t("nav.radar");
+      else if (segment === "investigations") label = t("nav.investigations");
+      else if (segment === "briefs") label = t("nav.briefs");
+      else if (segment === "data") label = t("nav.dataMethod");
       else if (segment.startsWith("run-") || segment.startsWith("inv-") || segment.startsWith("brief-")) {
         label = segment.length > 18 ? `${segment.slice(0, 15)}…` : segment;
-      } else if (segment === "energy-coal") label = "Energy — Coal";
+      } else if (segment === "energy-coal") label = language === "id" ? "Energi — Batubara" : "Energy — Coal";
       return { label, href: url };
     }),
   ];
@@ -90,7 +92,7 @@ export function AppShell({
   return (
     <div className="app-container">
       <a href="#main-content" className="skip-link">
-        Skip to main content
+        {t("nav.skipToContent")}
       </a>
 
       {/* Linear-Style Unified Left Sidebar */}
@@ -103,7 +105,7 @@ export function AppShell({
                 <span>NADI</span>
                 <span className="sidebar-logo-pulse" title="System Operational" />
               </div>
-              <span className="sidebar-subtitle">National Discovery Intelligence</span>
+              <span className="sidebar-subtitle">{t("brand.fullName")}</span>
             </div>
           </Link>
         </div>
@@ -152,23 +154,24 @@ export function AppShell({
         <div className="sidebar-footer">
           <div className="role-switcher-container">
             <span style={{ fontSize: "0.625rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
-              Session:
+              {t("session.label")}
             </span>
             <select
               value={activeRole}
               onChange={(e) => setActiveRole(e.target.value as "analyst" | "operator" | "admin")}
               className="role-badge-select"
               aria-label="Switch active session role"
+              suppressHydrationWarning
             >
-              <option value="analyst">Analyst (Policy)</option>
-              <option value="operator">Operator (Data Ops)</option>
-              <option value="admin">System Admin</option>
+              <option value="analyst">{t("session.analyst")}</option>
+              <option value="operator">{t("session.operator")}</option>
+              <option value="admin">{t("session.admin")}</option>
             </select>
           </div>
 
           <div style={{ color: "var(--slate-500)", fontSize: "0.625rem", lineHeight: 1.4 }}>
-            <div>Engine: <strong style={{ color: "var(--slate-700)" }}>Method v0.1</strong> (100% Deterministic)</div>
-            <div style={{ marginTop: "1px" }}>IDX Listed Coverage · BPS Macro Context</div>
+            <div><strong style={{ color: "var(--slate-700)" }}>{t("engine.title")}</strong></div>
+            <div style={{ marginTop: "1px" }}>{t("engine.subtitle")}</div>
           </div>
         </div>
       </aside>
@@ -196,8 +199,8 @@ export function AppShell({
             })}
           </nav>
 
-          {/* Right Actions: Search Trigger & Mode */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Right Actions: Search Trigger, Language Switcher & Mode */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               type="button"
               className="topbar-search-trigger"
@@ -205,9 +208,63 @@ export function AppShell({
               aria-label="Open Command Palette (Press ⌘K)"
             >
               <IconSearch size={14} />
-              <span style={{ flex: 1, textAlign: "left" }}>Quick search sectors, tickers...</span>
+              <span style={{ flex: 1, textAlign: "left" }}>{t("nav.quickSearch")}</span>
               <span className="kbd-shortcut">⌘K</span>
             </button>
+
+            {/* Language Switcher */}
+            <div
+              className="lang-switcher"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                background: "var(--slate-100)",
+                padding: "2px",
+                borderRadius: "6px",
+                border: "1px solid var(--border-light)",
+              }}
+              role="group"
+              aria-label={t("action.switchLanguage")}
+            >
+              <button
+                type="button"
+                onClick={() => setLanguage("id")}
+                style={{
+                  padding: "3px 7px",
+                  fontSize: "0.6875rem",
+                  fontWeight: language === "id" ? 700 : 500,
+                  background: language === "id" ? "#ffffff" : "transparent",
+                  color: language === "id" ? "var(--slate-900)" : "var(--slate-500)",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  boxShadow: language === "id" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+                aria-pressed={language === "id"}
+              >
+                ID
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                style={{
+                  padding: "3px 7px",
+                  fontSize: "0.6875rem",
+                  fontWeight: language === "en" ? 700 : 500,
+                  background: language === "en" ? "#ffffff" : "transparent",
+                  color: language === "en" ? "var(--slate-900)" : "var(--slate-500)",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  boxShadow: language === "en" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+                aria-pressed={language === "en"}
+              >
+                EN
+              </button>
+            </div>
 
             <DataModeBadge mode={dataMode} size="sm" />
 
@@ -215,8 +272,8 @@ export function AppShell({
               <strong className="tabular-nums">{activePeriod}</strong>
             </span>
 
-            <Link href={"/data" as Route} className="btn btn-secondary btn-sm" title="View Method v0.1 Specification">
-              Method Spec
+            <Link href={"/data" as Route} className="btn btn-secondary btn-sm" title={t("action.viewMethod")}>
+              {t("action.viewMethod")}
             </Link>
           </div>
         </header>

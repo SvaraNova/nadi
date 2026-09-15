@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, type FC } from "react";
-import { IconClose, IconCopy, IconCheck, IconShieldCheck } from "./Icons";
+import { IconClose, IconCopy, IconCheck } from "./Icons";
+import { useLanguage } from "../../lib/i18n";
+import { formatCurrencyIDR } from "../../lib/formatters";
 
 export interface EvidenceRecord {
   id: string;
@@ -30,6 +32,8 @@ interface Props {
 }
 
 export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
+  const { language } = useLanguage();
+  const isId = language === "id";
   const [activeTab, setActiveTab] = useState<"math" | "disclosure" | "lineage">("math");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -68,8 +72,8 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
         <div className="drawer-header">
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-              <span className="badge badge-snapshot">Evidence Lineage</span>
-              <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>Method v0.1 Verified</span>
+              <span className="badge badge-snapshot">{isId ? "Asal-usul Bukti (Lineage)" : "Evidence Lineage"}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{isId ? "Terverifikasi Metode v0.1" : "Method v0.1 Verified"}</span>
             </div>
             <h3 id="drawer-title" style={{ margin: 0, fontSize: "1.2rem", color: "var(--slate-950)" }}>
               {evidence.id}
@@ -82,9 +86,9 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={onClose}
-            aria-label="Close evidence drawer"
+            aria-label={isId ? "Tutup laci bukti" : "Close evidence drawer"}
           >
-            <IconClose size={14} /> Close
+            <IconClose size={14} /> {isId ? "Tutup" : "Close"}
           </button>
         </div>
 
@@ -95,21 +99,21 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
             className={`drawer-tab ${activeTab === "math" ? "active" : ""}`}
             onClick={() => setActiveTab("math")}
           >
-            Formula & Math
+            {isId ? "Formula & Perhitungan" : "Formula & Math"}
           </button>
           <button
             type="button"
             className={`drawer-tab ${activeTab === "disclosure" ? "active" : ""}`}
             onClick={() => setActiveTab("disclosure")}
           >
-            Disclosures & Basis
+            {isId ? "Keterbukaan & Dasar" : "Disclosures & Basis"}
           </button>
           <button
             type="button"
             className={`drawer-tab ${activeTab === "lineage" ? "active" : ""}`}
             onClick={() => setActiveTab("lineage")}
           >
-            Cryptographic Lineage
+            {isId ? "Audit Kriptografis" : "Cryptographic Lineage"}
           </button>
         </div>
 
@@ -118,9 +122,13 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
           {activeTab === "math" && (
             <div>
               <div className="card" style={{ marginBottom: "20px", background: "var(--slate-50)" }}>
-                <div className="card-eyebrow">Deterministic Calculation (Decimal.js)</div>
+                <div className="card-eyebrow">
+                  {isId ? "Perhitungan Deterministik (Decimal.js)" : "Deterministic Calculation (Decimal.js)"}
+                </div>
                 <div style={{ marginBottom: "12px" }}>
-                  <span style={{ fontSize: "0.8125rem", color: "var(--slate-600)" }}>Applied Formula:</span>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--slate-600)" }}>
+                    {isId ? "Formula yang Diterapkan:" : "Applied Formula:"}
+                  </span>
                   <div
                     style={{
                       marginTop: "4px",
@@ -139,17 +147,29 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
                   <div style={{ padding: "10px", background: "var(--white)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase" }}>Prior Base Value</div>
-                    <div className="tabular-nums" style={{ fontSize: "1rem", fontWeight: 700, color: "var(--slate-800)", marginTop: "2px" }}>
-                      {evidence.priorValue ? Number(evidence.priorValue).toLocaleString("id-ID") : "—"}
+                    <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase" }}>
+                      {isId ? "Nilai Basis Sebelumnya" : "Prior Base Value"}
+                    </div>
+                    <div
+                      className="tabular-nums"
+                      style={{ fontSize: "1rem", fontWeight: 700, color: "var(--slate-800)", marginTop: "2px" }}
+                      title={`Nilai eksak / Exact: ${evidence.priorValue ?? "—"}`}
+                    >
+                      {evidence.priorValue ? Number(evidence.priorValue).toLocaleString(isId ? "id-ID" : "en-US") : "—"}
                     </div>
                     <div style={{ fontSize: "0.6875rem", color: "var(--slate-400)" }}>{evidence.currency} ({evidence.unit})</div>
                   </div>
 
                   <div style={{ padding: "10px", background: "var(--white)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)" }}>
-                    <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase" }}>Current Target Value</div>
-                    <div className="tabular-nums" style={{ fontSize: "1rem", fontWeight: 700, color: "var(--slate-800)", marginTop: "2px" }}>
-                      {evidence.currentValue ? Number(evidence.currentValue).toLocaleString("id-ID") : "—"}
+                    <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase" }}>
+                      {isId ? "Nilai Target Saat Ini" : "Current Target Value"}
+                    </div>
+                    <div
+                      className="tabular-nums"
+                      style={{ fontSize: "1rem", fontWeight: 700, color: "var(--slate-800)", marginTop: "2px" }}
+                      title={`Nilai eksak / Exact: ${evidence.currentValue ?? "—"}`}
+                    >
+                      {evidence.currentValue ? Number(evidence.currentValue).toLocaleString(isId ? "id-ID" : "en-US") : "—"}
                     </div>
                     <div style={{ fontSize: "0.6875rem", color: "var(--slate-400)" }}>{evidence.currency} ({evidence.unit})</div>
                   </div>
@@ -157,20 +177,22 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
 
                 <div style={{ padding: "12px 14px", background: "var(--primary-50)", border: "1px solid var(--primary-200)", borderRadius: "var(--radius-sm)" }}>
                   <div style={{ fontSize: "0.75rem", color: "var(--primary-800)", fontWeight: 700, textTransform: "uppercase" }}>
-                    Deterministic Output Result
+                    {isId ? "Hasil Output Deterministik" : "Deterministic Output Result"}
                   </div>
                   <div className="tabular-nums" style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--primary-900)", marginTop: "2px" }}>
                     {evidence.calculationResult}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--primary-700)", marginTop: "2px" }}>
-                    Calculated via Method v0.1 without floating point drift.
+                    {isId
+                      ? "Dihitung menggunakan Metode v0.1 tanpa floating point drift."
+                      : "Calculated via Method v0.1 without floating point drift."}
                   </div>
                 </div>
               </div>
 
               {evidence.notes && (
                 <div style={{ padding: "12px 16px", background: "var(--warn-50)", border: "1px solid var(--warn-200)", borderRadius: "var(--radius-md)", fontSize: "0.8125rem", color: "var(--warn-900)" }}>
-                  <strong>Accounting Treatment:</strong> {evidence.notes}
+                  <strong>{isId ? "Perlakuan Akuntansi:" : "Accounting Treatment:"}</strong> {evidence.notes}
                 </div>
               )}
             </div>
@@ -180,31 +202,36 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
           {activeTab === "disclosure" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div className="card" style={{ padding: "16px" }}>
-                <div className="card-eyebrow">Financial Statement Context</div>
+                <div className="card-eyebrow">
+                  {isId ? "Konteks Laporan Keuangan" : "Financial Statement Context"}
+                </div>
                 <table style={{ margin: 0 }}>
                   <tbody>
                     <tr>
-                      <td style={{ color: "var(--slate-500)", width: "160px" }}>Entity Symbol</td>
+                      <td style={{ color: "var(--slate-500)", width: "160px" }}>{isId ? "Simbol Emiten" : "Entity Symbol"}</td>
                       <td><strong className="tabular-nums">{evidence.symbol}</strong> ({evidence.entityName})</td>
                     </tr>
                     <tr>
-                      <td style={{ color: "var(--slate-500)" }}>Evaluated Metric</td>
+                      <td style={{ color: "var(--slate-500)" }}>{isId ? "Metrik yang Dievaluasi" : "Evaluated Metric"}</td>
                       <td><strong>{evidence.metric.replace(/_/g, " ").toUpperCase()}</strong></td>
                     </tr>
                     <tr>
-                      <td style={{ color: "var(--slate-500)" }}>Accounting Basis</td>
-                      <td><span className="badge badge-neutral">{evidence.basis}</span> (Discrete standalone quarter, not YTD)</td>
+                      <td style={{ color: "var(--slate-500)" }}>{isId ? "Dasar Akuntansi" : "Accounting Basis"}</td>
+                      <td>
+                        <span className="badge badge-neutral">{evidence.basis}</span>{" "}
+                        ({isId ? "Kuartal mandiri terpisah, bukan akumulatif YTD" : "Discrete standalone quarter, not YTD"})
+                      </td>
                     </tr>
                     <tr>
-                      <td style={{ color: "var(--slate-500)" }}>Target Period</td>
+                      <td style={{ color: "var(--slate-500)" }}>{isId ? "Periode Target" : "Target Period"}</td>
                       <td><strong className="tabular-nums">{evidence.period}</strong></td>
                     </tr>
                     <tr>
-                      <td style={{ color: "var(--slate-500)" }}>Reporting Currency</td>
-                      <td><strong>{evidence.currency}</strong> (Normalized to IDR)</td>
+                      <td style={{ color: "var(--slate-500)" }}>{isId ? "Mata Uang Pelaporan" : "Reporting Currency"}</td>
+                      <td><strong>{evidence.currency}</strong> ({isId ? "Dinormalisasi ke IDR" : "Normalized to IDR"})</td>
                     </tr>
                     <tr>
-                      <td style={{ color: "var(--slate-500)" }}>Source JSON Pointer</td>
+                      <td style={{ color: "var(--slate-500)" }}>{isId ? "Penunjuk JSON Sumber" : "Source JSON Pointer"}</td>
                       <td><code>{evidence.sourcePointer || "/0"}</code></td>
                     </tr>
                   </tbody>
@@ -212,7 +239,10 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
               </div>
 
               <div style={{ fontSize: "0.8125rem", color: "var(--slate-600)", lineHeight: 1.6 }}>
-                <strong>Quality Assurance Note:</strong> Standalone quarterly figures for Q2, Q3, and Q4 are derived deterministically by subtracting prior cumulative filings from the current year-to-date filing, preserving audit alignment.
+                <strong>{isId ? "Catatan Jaminan Kualitas:" : "Quality Assurance Note:"}</strong>{" "}
+                {isId
+                  ? "Angka kuartal mandiri untuk Q2, Q3, dan Q4 diturunkan secara deterministik dengan mengurangi pelaporan kumulatif sebelumnya dari pelaporan tahun berjalan (YTD), menjaga keselarasan audit."
+                  : "Standalone quarterly figures for Q2, Q3, and Q4 are derived deterministically by subtracting prior cumulative filings from the current year-to-date filing, preserving audit alignment."}
               </div>
             </div>
           )}
@@ -221,12 +251,14 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
           {activeTab === "lineage" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div className="card" style={{ padding: "16px", background: "var(--slate-50)" }}>
-                <div className="card-eyebrow">Cryptographic Audit Hashes</div>
+                <div className="card-eyebrow">
+                  {isId ? "Hash Audit Kriptografis" : "Cryptographic Audit Hashes"}
+                </div>
 
                 <div style={{ marginBottom: "14px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-600)" }}>
-                      Observation SHA-256 Hash
+                      {isId ? "Hash SHA-256 Observasi" : "Observation SHA-256 Hash"}
                     </span>
                     <button
                       type="button"
@@ -236,11 +268,11 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
                     >
                       {copiedField === "hash" ? (
                         <>
-                          <IconCheck size={11} /> Copied!
+                          <IconCheck size={11} /> {isId ? "Tersalin!" : "Copied!"}
                         </>
                       ) : (
                         <>
-                          <IconCopy size={11} /> Copy Hash
+                          <IconCopy size={11} /> {isId ? "Salin Hash" : "Copy Hash"}
                         </>
                       )}
                     </button>
@@ -265,7 +297,7 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
                 <div style={{ marginBottom: "14px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-600)" }}>
-                      Stable Citation Reference
+                      {isId ? "Referensi Sitasi Stabil" : "Stable Citation Reference"}
                     </span>
                     <button
                       type="button"
@@ -275,11 +307,11 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
                     >
                       {copiedField === "ref" ? (
                         <>
-                          <IconCheck size={11} /> Copied!
+                          <IconCheck size={11} /> {isId ? "Tersalin!" : "Copied!"}
                         </>
                       ) : (
                         <>
-                          <IconCopy size={11} /> Copy Ref
+                          <IconCopy size={11} /> {isId ? "Salin Ref" : "Copy Ref"}
                         </>
                       )}
                     </button>
@@ -302,19 +334,21 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
                 </div>
 
                 <div>
-                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-600)" }}>Dataset Lineage</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--slate-600)" }}>
+                    {isId ? "Asal-usul Dataset" : "Dataset Lineage"}
+                  </span>
                   <table style={{ margin: "6px 0 0", fontSize: "0.8125rem" }}>
                     <tbody>
                       <tr>
-                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>Dataset Run ID:</td>
+                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>{isId ? "ID Putaran Dataset:" : "Dataset Run ID:"}</td>
                         <td style={{ padding: "6px 0" }}><code>{evidence.datasetId}</code></td>
                       </tr>
                       <tr>
-                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>Signal Run ID:</td>
+                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>{isId ? "ID Putaran Sinyal:" : "Signal Run ID:"}</td>
                         <td style={{ padding: "6px 0" }}><code>{evidence.signalRunId}</code></td>
                       </tr>
                       <tr>
-                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>Observation Timestamp:</td>
+                        <td style={{ color: "var(--slate-500)", padding: "6px 0" }}>{isId ? "Waktu Observasi:" : "Observation Timestamp:"}</td>
                         <td style={{ padding: "6px 0" }} className="tabular-nums">{evidence.retrievedAt}</td>
                       </tr>
                     </tbody>
@@ -326,7 +360,7 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
 
           <div style={{ marginTop: "28px", paddingTop: "16px", borderTop: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>
-              Citation key: <strong>[{evidence.id.split("-").slice(1, 3).join("-")}]</strong>
+              {isId ? "Kunci sitasi: " : "Citation key: "}<strong>[{evidence.id.split("-").slice(1, 3).join("-")}]</strong>
             </span>
             <button
               type="button"
@@ -336,11 +370,11 @@ export const EvidenceDrawer: FC<Props> = ({ evidence, onClose }) => {
             >
               {copiedField === "citation" ? (
                 <>
-                  <IconCheck size={12} /> Reference Copied
+                  <IconCheck size={12} /> {isId ? "Referensi Tersalin" : "Reference Copied"}
                 </>
               ) : (
                 <>
-                  <IconCopy size={12} /> Copy Citation Tag
+                  <IconCopy size={12} /> {isId ? "Salin Label Sitasi" : "Copy Citation Tag"}
                 </>
               )}
             </button>
