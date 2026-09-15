@@ -42,37 +42,42 @@ export const InlineSparkline: FC<Props> = ({
 
   const fillPoints = `${padding},${height} ${points} ${width - padding},${height}`;
 
+  const trendSummary = `Trend values: ${data.join(" → ")}`;
+
   return (
-    <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      style={{ overflow: "visible", display: "inline-block", verticalAlign: "middle" }}
-      role="img"
-      aria-label={ariaLabel}
-    >
-      {fill && (
-        <polygon
-          points={fillPoints}
-          fill={color}
-          opacity={0.12}
+    <span style={{ display: "inline-flex", alignItems: "center" }}>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        style={{ overflow: "visible", display: "inline-block", verticalAlign: "middle" }}
+        role="img"
+        aria-label={`${ariaLabel}. ${trendSummary}`}
+      >
+        {fill && (
+          <polygon
+            points={fillPoints}
+            fill={color}
+            opacity={0.12}
+          />
+        )}
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points}
         />
-      )}
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points}
-      />
-      {/* Current/latest observation dot */}
-      <circle
-        cx={Number(lastX)}
-        cy={Number(lastY)}
-        r={2}
-        fill={color}
-      />
-    </svg>
+        {/* Current/latest observation dot */}
+        <circle
+          cx={Number(lastX)}
+          cy={Number(lastY)}
+          r={2}
+          fill={color}
+        />
+      </svg>
+      <span className="sr-only">{trendSummary}</span>
+    </span>
   );
 };

@@ -8,12 +8,65 @@ function list(items: readonly string[], empty = "None recorded."): string {
   return items.length ? items.map(item => `- ${clean(item)}`).join("\n") : empty;
 }
 
-export function renderInvestigationMarkdown(brief: InvestigationBrief, generatedAt: string): string {
+export function renderInvestigationMarkdown(
+  brief: InvestigationBrief,
+  generatedAt: string,
+  lang: "en" | "id" = "en"
+): string {
+  const isId = lang === "id";
+  const emptyText = isId ? "Tidak ada catatan." : "None recorded.";
   const claims = brief.claims.map(claim => {
-    const evidence = claim.evidenceIds.length ? ` Evidence: ${claim.evidenceIds.map(id => `\`${clean(id)}\``).join(", ")}.` : "";
+    const evidence = claim.evidenceIds.length
+      ? ` ${isId ? "Bukti" : "Evidence"}: ${claim.evidenceIds.map(id => `\`${clean(id)}\``).join(", ")}.`
+      : "";
     return `- **${clean(claim.kind)}:** ${clean(claim.text)}${evidence}`;
-  }).join("\n") || "- None recorded.";
+  }).join("\n") || `- ${emptyText}`;
   const mode = clean(brief.dataMode).toUpperCase();
+
+  if (isId) {
+    const modeLabel = mode === "SYNTHETIC" ? "DEMO SINTETIS" : mode === "SNAPSHOT" ? "ARSIP DATA" : "DATA LANGSUNG";
+    return `# ${clean(brief.title)}
+
+> ${modeLabel} · investigasi ${clean(brief.runId)}
+
+## Status dan Cakupan
+
+- Mode data: **${modeLabel}**
+- Dibuat: ${clean(generatedAt)}
+- Periode: ${clean(brief.period)}
+- Kohort: ${clean(brief.cohortId)}
+- Versi metode: ${clean(brief.methodVersion)}
+
+## Ringkasan Eksekutif
+
+${clean(brief.summary)}
+
+## Klaim Terverifikasi
+
+${claims}
+
+## Bukti-bukti
+
+Bukti pendukung: ${brief.supportingEvidenceIds.length ? brief.supportingEvidenceIds.map(id => `\`${clean(id)}\``).join(", ") : emptyText}
+
+Bukti sanggahan (counterevidence): ${list(brief.contradictingEvidenceIds, emptyText)}
+
+## Kesenjangan Data dan Perbandingan Publik
+
+${list(brief.dataGaps, emptyText)}
+
+Perbandingan publik: **${clean(brief.publicComparison)}**
+
+## Pertanyaan Investigasi Lanjutan
+
+${list(brief.investigationQuestions, emptyText)}
+
+## Batasan Metodologi
+
+${list(brief.limitations, emptyText)}
+`;
+  }
+
   return `# ${clean(brief.title)}
 
 > ${mode} · investigation ${clean(brief.runId)}

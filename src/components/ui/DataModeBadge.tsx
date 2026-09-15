@@ -1,4 +1,7 @@
+"use client";
+
 import type { FC } from "react";
+import { useLanguage } from "../../lib/i18n";
 
 export type NadiMode = "live" | "snapshot" | "synthetic";
 
@@ -8,19 +11,27 @@ interface Props {
 }
 
 export const DataModeBadge: FC<Props> = ({ mode, size = "md" }) => {
+  const { language } = useLanguage();
   const normalized = mode.toLowerCase();
+  
   let className = "badge badge-synthetic";
-  let label = "SYNTHETIC DEMO";
-  let description = "Generated deterministic benchmark data for testing";
+  let label = language === "id" ? "DEMO SINTETIS" : "SYNTHETIC DEMO";
+  let description = language === "id"
+    ? "Data simulasi untuk pengujian sistem dan demonstrasi. Bukan temuan ekonomi riil."
+    : "Simulated benchmark data for testing. Not a real economic finding.";
 
   if (normalized === "live") {
     className = "badge badge-live";
-    label = "LIVE DATA";
-    description = "Directly connected to IDX & BPS feed";
+    label = language === "id" ? "DATA LANGSUNG" : "LIVE DATA";
+    description = language === "id"
+      ? "Terhubung langsung ke feed Sectors API v2 & BPS."
+      : "Directly connected to Sectors API v2 & BPS feed.";
   } else if (normalized === "snapshot") {
     className = "badge badge-snapshot";
-    label = "IMMUTABLE SNAPSHOT";
-    description = "Pinned read-only quarterly release";
+    label = language === "id" ? "ARSIP DATA" : "IMMUTABLE SNAPSHOT";
+    description = language === "id"
+      ? "Data historis emiten IDX yang dibekukan pada saat penarikan."
+      : "Pinned read-only quarterly release.";
   }
 
   return (
@@ -29,6 +40,7 @@ export const DataModeBadge: FC<Props> = ({ mode, size = "md" }) => {
       role="status"
       aria-label={`Data mode: ${label}`}
       title={description}
+      style={{ cursor: "help" }}
     >
       <span className="badge-pip" aria-hidden="true" />
       <span>{label}</span>

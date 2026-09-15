@@ -14,7 +14,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   try {
     const result = await readInvestigation(pool, id);
     if (!result) return Response.json({ error: { code: "NOT_FOUND", message: "Investigation is not complete." } }, { status: 404 });
-    const markdown = renderInvestigationMarkdown(result.brief, new Date().toISOString());
+    const url = new URL(request.url);
+    const lang = url.searchParams.get("lang") === "id" ? "id" : "en";
+    const markdown = renderInvestigationMarkdown(result.brief, new Date().toISOString(), lang);
     return new Response(markdown, { status: 200, headers: { "content-type": "text/markdown; charset=utf-8", "content-disposition": `attachment; filename="${investigationFilename(id)}"`, "cache-control": "no-store" } });
   } finally { await pool.end(); }
 }

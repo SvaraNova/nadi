@@ -7,6 +7,8 @@ import { SignalDirectionBadge } from "../../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../../components/ui/InlineSparkline";
 import { buildSectorSignalRuns, SECTOR_DEFINITIONS } from "../../domain/sectors-dataset";
 import type { Route } from "next";
+import { useLanguage } from "../../lib/i18n";
+import { formatScore } from "../../lib/formatters";
 
 const SECTOR_SPARKLINE_DATA: Record<string, number[]> = {
   "energy-coal": [20, 30, 50, 65, 75],
@@ -17,6 +19,8 @@ const SECTOR_SPARKLINE_DATA: Record<string, number[]> = {
 };
 
 export default function RadarPage() {
+  const { language, t } = useLanguage();
+  const isId = language === "id";
   const allSectors = useMemo(() => buildSectorSignalRuns(), []);
 
   // Filter States
@@ -88,6 +92,18 @@ export default function RadarPage() {
     setSortBy("strength");
   };
 
+  const getSectorDisplayName = (s: { id: string; name: string }) => {
+    if (!isId) return s.name;
+    const nameMap: Record<string, string> = {
+      "energy-coal": "Energi — Pertambangan Batubara",
+      "consumer-staples": "Barang Konsumsi Pokok — Makanan & Minuman",
+      "basic-materials": "Bahan Baku & Kimia Dasar",
+      "industrial-logistics": "Transportasi & Logistik Industri",
+      "telecommunications": "Infrastruktur Telekomunikasi",
+    };
+    return nameMap[s.id] || s.name;
+  };
+
   return (
     <AppShell dataMode="synthetic" activePeriod={`${period} vs ${period === "Q1-2026" ? "Q1-2025" : "Q4-2024"}`}>
       {/* Header */}
@@ -95,12 +111,14 @@ export default function RadarPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-              <span className="badge badge-snapshot">Evidence Cohorts</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>Method v0.1 Evaluated</span>
+              <span className="badge badge-snapshot">{isId ? "Kohort Bukti" : "Evidence Cohorts"}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>{isId ? "Metode v0.1 Dievaluasi" : "Method v0.1 Evaluated"}</span>
             </div>
-            <h1>Sector Signal Radar</h1>
+            <h1>{isId ? "Radar Sinyal Sektor" : "Sector Signal Radar"}</h1>
             <p className="page-subtitle">
-              Explore corporate evidence, breadth of financial shifts, and deterministic signal scores across Indonesian sectors.
+              {isId
+                ? "Eksplorasi bukti keuangan korporasi, sebaran pergeseran fundamental, dan skor sinyal deterministik di seluruh sektor Indonesia."
+                : "Explore corporate evidence, breadth of financial shifts, and deterministic signal scores across Indonesian sectors."}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -108,17 +126,17 @@ export default function RadarPage() {
               type="button"
               className={`btn btn-sm ${viewMode === "cards" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => setViewMode("cards")}
-              aria-label="Cards view"
+              aria-label={isId ? "Tampilan kartu" : "Cards view"}
             >
-              Cards Grid
+              {isId ? "Tampilan Kartu" : "Cards Grid"}
             </button>
             <button
               type="button"
               className={`btn btn-sm ${viewMode === "table" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => setViewMode("table")}
-              aria-label="Table view"
+              aria-label={isId ? "Tampilan tabel" : "Table view"}
             >
-              Data Table
+              {isId ? "Tabel Aksesibel" : "Data Table"}
             </button>
           </div>
         </div>
@@ -131,62 +149,62 @@ export default function RadarPage() {
           className={`chip ${directionFilter === "all" ? "active" : ""}`}
           onClick={() => setDirectionFilter("all")}
         >
-          All Cohorts ({counts.all})
+          {isId ? "Semua Sektor" : "All Cohorts"} ({counts.all})
         </button>
         <button
           type="button"
           className={`chip ${directionFilter === "pressure" ? "active" : ""}`}
           onClick={() => setDirectionFilter("pressure")}
         >
-          ● Pressure ({counts.pressure})
+          ● {isId ? "Tekanan Risiko" : "Pressure"} ({counts.pressure})
         </button>
         <button
           type="button"
           className={`chip ${directionFilter === "opportunity" ? "active" : ""}`}
           onClick={() => setDirectionFilter("opportunity")}
         >
-          ● Opportunity ({counts.opportunity})
+          ● {isId ? "Peluang" : "Opportunity"} ({counts.opportunity})
         </button>
         <button
           type="button"
           className={`chip ${directionFilter === "mixed" ? "active" : ""}`}
           onClick={() => setDirectionFilter("mixed")}
         >
-          ● Mixed ({counts.mixed})
+          ● {isId ? "Sinyal Campuran" : "Mixed"} ({counts.mixed})
         </button>
         <button
           type="button"
           className={`chip ${directionFilter === "neutral" ? "active" : ""}`}
           onClick={() => setDirectionFilter("neutral")}
         >
-          ● Neutral / Insufficient ({counts.neutral})
+          ● {isId ? "Netral / Tidak Memadai" : "Neutral / Insufficient"} ({counts.neutral})
         </button>
       </div>
 
       {/* Main Filter Bar */}
-      <section className="filter-bar" aria-label="Radar filters">
+      <section className="filter-bar" aria-label={isId ? "Penyaring Radar" : "Radar filters"}>
         <div className="filter-group">
-          <label htmlFor="period-select" className="filter-label">Period:</label>
+          <label htmlFor="period-select" className="filter-label">{isId ? "Periode:" : "Period:"}</label>
           <select
             id="period-select"
             className="form-select"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
           >
-            <option value="Q1-2026">Q1-2026 vs Q1-2025 (Latest)</option>
+            <option value="Q1-2026">Q1-2026 vs Q1-2025 ({isId ? "Terbaru" : "Latest"})</option>
             <option value="Q4-2025">Q4-2025 vs Q4-2024</option>
           </select>
         </div>
 
         <div className="filter-group">
-          <label htmlFor="industry-select" className="filter-label">Industry:</label>
+          <label htmlFor="industry-select" className="filter-label">{isId ? "Industri:" : "Industry:"}</label>
           <select
             id="industry-select"
             className="form-select"
             value={industryFilter}
             onChange={(e) => setIndustryFilter(e.target.value)}
           >
-            <option value="all">All Industries</option>
+            <option value="all">{isId ? "Semua Industri" : "All Industries"}</option>
             {industries.map((ind) => (
               <option key={ind} value={ind}>{ind}</option>
             ))}
@@ -194,29 +212,29 @@ export default function RadarPage() {
         </div>
 
         <div className="filter-group">
-          <label htmlFor="search-input" className="filter-label">Search:</label>
+          <label htmlFor="search-input" className="filter-label">{isId ? "Cari:" : "Search:"}</label>
           <input
             id="search-input"
             type="search"
-            placeholder="Search cohort or ticker (e.g. ADRO, ICBP)..."
+            placeholder={isId ? "Cari sektor atau ticker (misal ADRO, ICBP)..." : "Search cohort or ticker (e.g. ADRO, ICBP)..."}
             className="form-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: "240px" }}
+            style={{ width: "260px" }}
           />
         </div>
 
         <div className="filter-group">
-          <label htmlFor="sort-select" className="filter-label">Sort:</label>
+          <label htmlFor="sort-select" className="filter-label">{isId ? "Urutan:" : "Sort:"}</label>
           <select
             id="sort-select"
             className="form-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "strength" | "breadth" | "name")}
           >
-            <option value="strength">Signal Strength</option>
-            <option value="breadth">Signal Breadth</option>
-            <option value="name">Alphabetical</option>
+            <option value="strength">{isId ? "Kekuatan Sinyal" : "Signal Strength"}</option>
+            <option value="breadth">{isId ? "Sebaran Sinyal" : "Signal Breadth"}</option>
+            <option value="name">{isId ? "Nama Sektor" : "Alphabetical"}</option>
           </select>
         </div>
 
@@ -225,17 +243,21 @@ export default function RadarPage() {
           className="btn btn-secondary btn-sm"
           onClick={handleReset}
         >
-          Reset
+          {isId ? "Atur Ulang" : "Reset"}
         </button>
       </section>
 
       {/* Results View */}
       {filteredSectors.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "48px" }}>
-          <h3>No cohorts match the filter criteria</h3>
-          <p style={{ color: "var(--slate-500)" }}>Try searching a different ticker or resetting your filter selections.</p>
+          <h3>{isId ? "Tidak ada sektor yang cocok dengan kriteria filter" : "No cohorts match the filter criteria"}</h3>
+          <p style={{ color: "var(--slate-500)" }}>
+            {isId
+              ? "Coba cari kode emiten lain atau atur ulang pilihan filter Anda."
+              : "Try searching a different ticker or resetting your filter selections."}
+          </p>
           <button type="button" className="btn btn-secondary" onClick={handleReset}>
-            Reset All Filters
+            {isId ? "Atur Ulang Semua Filter" : "Reset All Filters"}
           </button>
         </div>
       ) : viewMode === "cards" ? (
@@ -271,7 +293,7 @@ export default function RadarPage() {
                     <div>
                       <div className="card-eyebrow">{s.industry}</div>
                       <h2 style={{ margin: "2px 0 0", fontSize: "1.15rem", color: "var(--slate-950)", letterSpacing: "-0.015em" }}>
-                        {s.name}
+                        {getSectorDisplayName(s)}
                       </h2>
                     </div>
                     <SignalDirectionBadge direction={s.cohortSignal.label} size="sm" />
@@ -281,22 +303,44 @@ export default function RadarPage() {
                     {s.description}
                   </p>
 
-                  {/* Metrics Summary Strip */}
+                  {/* Metrics Summary Strip with Plain Language Tooltips */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", background: "var(--slate-50)", padding: "10px 12px", borderRadius: "var(--radius-sm)", marginBottom: "12px", border: "1px solid var(--border-light)" }}>
                     <div>
-                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>Risk / Opp</div>
+                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
+                        {isId ? "Risiko / Peluang" : "Risk / Opp"}
+                      </div>
                       <div className="tabular-nums" style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--slate-900)" }}>
-                        <span style={{ color: "var(--risk-700)" }}>{s.cohortSignal.riskScore ?? "—"}</span> / <span style={{ color: "var(--opp-700)" }}>{s.cohortSignal.opportunityScore ?? "—"}</span>
+                        <span
+                          style={{ color: "var(--risk-700)" }}
+                          title={formatScore(s.cohortSignal.riskScore, language).title}
+                        >
+                          {formatScore(s.cohortSignal.riskScore, language).formatted}
+                        </span>
+                        {" / "}
+                        <span
+                          style={{ color: "var(--opp-700)" }}
+                          title={formatScore(s.cohortSignal.opportunityScore, language).title}
+                        >
+                          {formatScore(s.cohortSignal.opportunityScore, language).formatted}
+                        </span>
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>Breadth</div>
+                    <div title={t("concept.riskBreadth.desc")} style={{ cursor: "help" }}>
+                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
+                        {isId ? "Sebaran Sinyal" : "Breadth"}
+                      </div>
                       <div className="tabular-nums" style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--slate-900)" }}>
-                        {s.cohortSignal.riskBreadth ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}%` : s.cohortSignal.opportunityBreadth ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}%` : "—"}
+                        {s.cohortSignal.riskBreadth
+                          ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}%`
+                          : s.cohortSignal.opportunityBreadth
+                          ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}%`
+                          : "—"}
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>Coverage</div>
+                    <div title={t("concept.coverage.desc")} style={{ cursor: "help" }}>
+                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
+                        {isId ? "Cakupan Sampel" : "Coverage"}
+                      </div>
                       <div className="tabular-nums" style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--slate-900)" }}>
                         {s.cohortSignal.eligibleCount}/{s.cohortSignal.totalMembers}
                       </div>
@@ -306,9 +350,15 @@ export default function RadarPage() {
                   {/* 5-Quarter Trend Sparkline Banner */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--white)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)", marginBottom: "12px" }}>
                     <div>
-                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>5-Q Trajectory</div>
+                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
+                        {isId ? "Trajektori 5-Kuartal" : "5-Q Trajectory"}
+                      </div>
                       <div style={{ fontSize: "0.75rem", color: isRisk ? "var(--risk-700)" : isOpp ? "var(--opp-700)" : "var(--slate-700)", fontWeight: 700 }}>
-                        {isRisk ? "Ascending Risk (+55pts)" : isOpp ? "Expanding Opportunity (+40pts)" : "Consolidating"}
+                        {isRisk
+                          ? (isId ? "Peningkatan Risiko (+55pt)" : "Ascending Risk (+55pts)")
+                          : isOpp
+                          ? (isId ? "Peluang Meluas (+40pt)" : "Expanding Opportunity (+40pts)")
+                          : (isId ? "Konsolidasi" : "Consolidating")}
                       </div>
                     </div>
                     <InlineSparkline
@@ -317,19 +367,19 @@ export default function RadarPage() {
                       width={100}
                       height={28}
                       fill
-                      ariaLabel={`5-quarter trajectory for ${s.name}`}
+                      ariaLabel={`${isId ? "Trajektori 5-kuartal untuk" : "5-quarter trajectory for"} ${getSectorDisplayName(s)}`}
                     />
                   </div>
 
                   {/* Key Driver Callout */}
                   <div style={{ fontSize: "0.8125rem", color: "var(--slate-800)", marginBottom: "12px", lineHeight: 1.4 }}>
-                    <strong>Dominant Driver:</strong> {s.dominantDriver}
+                    <strong>{isId ? "Faktor Pendorong Utama:" : "Dominant Driver:"}</strong> {s.dominantDriver}
                   </div>
 
                   {/* Constituents Mini-Pills */}
                   <div style={{ marginBottom: "16px" }}>
                     <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "6px", fontWeight: 700 }}>
-                      Tracked Constituents:
+                      {isId ? "Emiten yang Dipantau:" : "Tracked Constituents:"}
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {tickers.map((sym) => (
@@ -359,7 +409,7 @@ export default function RadarPage() {
                     Dataset: <code style={{ fontSize: "0.6875rem" }}>{s.datasetId}</code>
                   </div>
                   <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-primary btn-sm">
-                    Open Signal &amp; Evidence →
+                    {isId ? "Buka Sinyal & Bukti →" : "Open Signal & Evidence →"}
                   </Link>
                 </div>
               </div>
@@ -372,15 +422,15 @@ export default function RadarPage() {
             <table>
               <thead>
                 <tr>
-                  <th scope="col">Cohort / Industry</th>
-                  <th scope="col">Signal Direction</th>
-                  <th scope="col" style={{ width: "110px" }}>5-Q Trend</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Risk / Opp</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Breadth</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Coverage</th>
-                  <th scope="col">Key Constituents</th>
-                  <th scope="col">Dominant Financial Driver</th>
-                  <th scope="col" style={{ textAlign: "right" }}>Action</th>
+                  <th scope="col">{isId ? "Sektor / Industri" : "Cohort / Industry"}</th>
+                  <th scope="col">{isId ? "Arah Sinyal" : "Signal Direction"}</th>
+                  <th scope="col" style={{ width: "110px" }}>{isId ? "Tren 5-Kuartal" : "5-Q Trend"}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{isId ? "Risiko / Peluang" : "Risk / Opp"}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{isId ? "Sebaran" : "Breadth"}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{isId ? "Cakupan" : "Coverage"}</th>
+                  <th scope="col">{isId ? "Emiten Kunci" : "Key Constituents"}</th>
+                  <th scope="col">{isId ? "Faktor Finansial Utama" : "Dominant Financial Driver"}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{isId ? "Aksi" : "Action"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -402,7 +452,7 @@ export default function RadarPage() {
                   return (
                     <tr key={s.id}>
                       <td>
-                        <div style={{ fontWeight: 700, color: "var(--slate-950)" }}>{s.name}</div>
+                        <div style={{ fontWeight: 700, color: "var(--slate-950)" }}>{getSectorDisplayName(s)}</div>
                         <div style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{s.industry}</div>
                       </td>
                       <td><SignalDirectionBadge direction={s.cohortSignal.label} size="sm" /></td>
@@ -413,16 +463,34 @@ export default function RadarPage() {
                           width={90}
                           height={22}
                           fill
-                          ariaLabel={`5-quarter trend for ${s.name}`}
+                          ariaLabel={`${isId ? "Tren 5-kuartal untuk" : "5-quarter trend for"} ${getSectorDisplayName(s)}`}
                         />
                       </td>
                       <td className="tabular-nums" style={{ textAlign: "right" }}>
-                        <strong style={{ color: "var(--risk-700)" }}>{s.cohortSignal.riskScore ?? "—"}</strong> / <strong style={{ color: "var(--opp-700)" }}>{s.cohortSignal.opportunityScore ?? "—"}</strong>
+                        <strong
+                          style={{ color: "var(--risk-700)" }}
+                          title={formatScore(s.cohortSignal.riskScore, language).title}
+                        >
+                          {formatScore(s.cohortSignal.riskScore, language).formatted}
+                        </strong>
+                        {" / "}
+                        <strong
+                          style={{ color: "var(--opp-700)" }}
+                          title={formatScore(s.cohortSignal.opportunityScore, language).title}
+                        >
+                          {formatScore(s.cohortSignal.opportunityScore, language).formatted}
+                        </strong>
                       </td>
-                      <td className="tabular-nums" style={{ textAlign: "right" }}>
-                        {s.cohortSignal.riskBreadth ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}%` : s.cohortSignal.opportunityBreadth ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}%` : "—"}
+                      <td className="tabular-nums" style={{ textAlign: "right" }} title={t("concept.riskBreadth.desc")}>
+                        {s.cohortSignal.riskBreadth
+                          ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}%`
+                          : s.cohortSignal.opportunityBreadth
+                          ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}%`
+                          : "—"}
                       </td>
-                      <td className="tabular-nums" style={{ textAlign: "right" }}>{s.cohortSignal.eligibleCount} / {s.cohortSignal.totalMembers}</td>
+                      <td className="tabular-nums" style={{ textAlign: "right" }} title={t("concept.coverage.desc")}>
+                        {s.cohortSignal.eligibleCount} / {s.cohortSignal.totalMembers}
+                      </td>
                       <td>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                           {tickers.map((t) => (
@@ -435,7 +503,7 @@ export default function RadarPage() {
                       <td style={{ fontSize: "0.8125rem", maxWidth: "260px" }}>{s.dominantDriver}</td>
                       <td style={{ textAlign: "right" }}>
                         <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
-                          Inspect →
+                          {isId ? "Periksa →" : "Inspect →"}
                         </Link>
                       </td>
                     </tr>
