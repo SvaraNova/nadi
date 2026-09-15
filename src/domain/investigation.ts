@@ -1,4 +1,4 @@
-export type InvestigationStatus = "completed" | "partial" | "cancelled" | "failed_validation";
+export type InvestigationStatus = "running" | "completed" | "partial" | "cancelled" | "failed_validation";
 export type InvestigationEvent = Readonly<{ type: "started" | "tool_started" | "tool_completed" | "progress" | "cancelled" | "completed" | "failed"; at: string; tool?: string; message: string }>;
 export type EvidenceClaim = Readonly<{ kind: "observation" | "interpretation" | "hypothesis" | "limitation"; text: string; evidenceIds: readonly string[]; numericFacts: readonly { evidenceId: string; fieldOrCalculation: string; value: string; unit: string }[] }>;
 export type InvestigationBrief = Readonly<{

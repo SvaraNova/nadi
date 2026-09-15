@@ -8,3 +8,7 @@ export function canAccessRequest(headers: Headers, mode = process.env.APP_ACCESS
   if (mode !== "local") return false;
   return isLoopbackAddress(headers.get("x-forwarded-for") ?? headers.get("x-real-ip"));
 }
+
+export function assertLocalRequest(headers: Headers): void {
+  if (!canAccessRequest(headers)) throw new Error("UNAUTHORIZED");
+}
