@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getInvestigation, executeInvestigation } from "../../../../server/investigation/investigation-service";
+import { assertLocalRequest } from "../../../../server/access";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(_req: Request, { params }: Props) {
+  try { assertLocalRequest(_req.headers); } catch { return NextResponse.json({ error: "unauthorized" }, { status: 401 }); }
   const { id } = await params;
   const inv = getInvestigation(id);
   if (!inv) {
@@ -17,6 +19,7 @@ export async function GET(_req: Request, { params }: Props) {
 export async function POST(req: Request, { params }: Props) {
   const { id } = await params;
   try {
+    assertLocalRequest(req.headers);
     const body = await req.json().catch(() => ({}));
     if (body.action === "cancel") {
       const inv = getInvestigation(id);

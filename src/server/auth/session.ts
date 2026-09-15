@@ -9,15 +9,14 @@ export interface SessionContext {
 
 export function getSessionContext(headers?: Headers): SessionContext {
   const authHeader = headers?.get("authorization");
-  const roleHeader = (headers?.get("x-nadi-role") as UserRole) || "analyst";
 
   // If deployed in authenticated environment, validate token.
   // In local development / demo mode, return authorized analyst session.
   return {
     userId: "analyst-local",
-    role: roleHeader,
+    role: "analyst",
     workspace: "national-economic-planning",
-    authenticated: Boolean(authHeader || process.env.NODE_ENV === "development" || !process.env.DATABASE_URL),
+    authenticated: Boolean(authHeader || (process.env.APP_ACCESS_MODE === "local" && process.env.NODE_ENV === "development")),
   };
 }
 

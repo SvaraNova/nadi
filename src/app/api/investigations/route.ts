@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { listInvestigations, createInvestigation } from "../../../server/investigation/investigation-service";
+import { assertLocalRequest } from "../../../server/access";
 
-export async function GET() {
+export async function GET(req: Request) {
+  try { assertLocalRequest(req.headers); } catch { return NextResponse.json({ error: "unauthorized" }, { status: 401 }); }
   const items = listInvestigations();
   return NextResponse.json({ investigations: items });
 }
 
 export async function POST(req: Request) {
   try {
+    assertLocalRequest(req.headers);
     const body = await req.json();
     const { cohortId, signalRunId, question } = body;
     if (!cohortId || !signalRunId || !question) {
