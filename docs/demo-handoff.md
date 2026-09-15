@@ -41,8 +41,8 @@ method version `0.1` and decimal string calculations.
   says otherwise; the reviewed mapping currently remains not comparable.
 - Investigation orchestration, tool scope, budgets, cancellation, fallback,
   and persistence contracts are implemented. A real model-backed investigation
-  has not been claimed because no configured LLM provider is part of this
-  handoff.
+  requires starting Ollama locally and selecting an installed model; this
+  handoff does not claim that a model is installed or that a live run succeeded.
 - Hosted authentication, adjacent-period persistence, and export remain future
   hardening work.
 
