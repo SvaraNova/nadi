@@ -21,3 +21,8 @@ dt { font-weight: bold; margin-top: 1rem; }
 dd { margin-left: 0; overflow-wrap: anywhere; }
 summary { cursor: pointer; padding: .75rem 0; }
 :target { outline: 2px solid #e9c36b; scroll-margin-top: 1rem; }
+button, a { font: inherit; }
+button { color: #101414; background: #ade4bd; border: 0; border-radius: .25rem; padding: .65rem 1rem; cursor: pointer; }
+button:hover { background: #d1f0d6; }
+@media (max-width: 600px) { main { padding: 2rem 1rem; } .evidence { padding-top: 1.5rem; } th, td { min-width: 9rem; } h1 { font-size: clamp(2.25rem, 14vw, 4rem); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
