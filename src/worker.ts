@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto";
 import { migrate } from "./server/ingestion/migrate";
 import { runOne } from "./server/ingestion/worker";
 import { persistSignalRun } from "./server/repositories/signal-runs";
+import { createOllamaProvider } from "./server/investigation/ollama";
+import { runInvestigation } from "./domain/investigation";
+import { startInvestigation, appendInvestigationEvent, finishInvestigation } from "./server/repositories/investigations";
 
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_NOT_CONFIGURED");
@@ -12,6 +15,17 @@ async function main() {
     if (command === "migrate") { await migrate(pool); console.log("Migrations applied"); }
     else if (command === "signals" && argument && target) {
       console.log(JSON.stringify({ runId: await persistSignalRun(pool, argument, target) }));
+    }
+    else if (command === "investigate" && argument) {
+      const provider = createOllamaProvider({ model: process.env.OLLAMA_MODEL ?? "qwen2.5:3b", endpoint: process.env.OLLAMA_ENDPOINT });
+      const result = await runInvestigation({ runId: argument, cohortId: "synthetic" }, [{ name: "get_signal", run: async () => {
+        const response = await provider.complete({ system: "Return one concise factual sentence. Do not invent numbers or citations.", user: `Summarize persisted signal run ${argument} as synthetic development data and state that it is not a live economic finding.` });
+        return { evidenceIds: [], summary: response.text };
+      }}], (results) => ({ title: "Local Ollama investigation", runId: argument, cohortId: "synthetic", dataMode: "synthetic", period: "2026-Q1", methodVersion: "0.1", summary: results[0]?.summary ?? "No model result", claims: [{ kind: "limitation", text: "Synthetic run only; no live economic conclusion.", evidenceIds: [], numericFacts: [] }], supportingEvidenceIds: [], contradictingEvidenceIds: [], dataGaps: ["Counterevidence not queried."], publicComparison: "not_comparable", investigationQuestions: ["What evidence should be checked next?"], limitations: ["Local Ollama integration run."] }));
+      const investigationId = await startInvestigation(pool, argument, { maxToolCalls: 12, deadlineMs: 120000 });
+      for (const [index, event] of result.events.entries()) await appendInvestigationEvent(pool, investigationId, event, index + 1);
+      await finishInvestigation(pool, investigationId, result.status, result.brief, null);
+      console.log(JSON.stringify({ investigationId, status: result.status, toolCalls: result.toolCalls, summary: result.brief.summary }));
     }
     else if (command === "enqueue-synthetic") {
       const scenario = argument ?? "baseline";
