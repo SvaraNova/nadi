@@ -55,6 +55,11 @@ export default function BriefsPage() {
           </Link>
         </div>
       </div>
+      <div className="flow-guide">
+        <strong>{isId ? "Apa isi brief ini?" : "What is a brief for?"}</strong>
+        <span>{isId ? "Brief merangkum observasi, interpretasi, bukti yang mendukung, bukti yang bertentangan, dan pertanyaan lanjutan dalam format yang dapat ditelaah." : "A brief combines observations, interpretations, supporting evidence, contradictory evidence, and follow-up questions in a reviewable format."}</span>
+        <small>{isId ? "Draf sintetis tetap perlu ditelaah manusia sebelum dipakai untuk keputusan." : "Synthetic drafts still require human review before decision use."}</small>
+      </div>
 
       {/* Filter Bar */}
       <section className="filter-bar" aria-label={isId ? "Filter ringkasan keputusan" : "Brief filters"}>

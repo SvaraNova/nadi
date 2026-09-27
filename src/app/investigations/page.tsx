@@ -54,6 +54,11 @@ export default function InvestigationsPage() {
           </Link>
         </div>
       </div>
+      <div className="flow-guide">
+        <strong>{isId ? "Apa yang dilakukan AI?" : "What does the AI do?"}</strong>
+        <span>{isId ? "AI membaca signal dan evidence yang sudah tersedia untuk menyusun interpretasi. AI tidak menghitung ulang skor dan tidak boleh membuat angka atau sumber baru." : "The AI reads the available signal and evidence to form interpretations. It does not recalculate scores and must not invent numbers or sources."}</span>
+        <small>{isId ? "Periksa supporting evidence, counterevidence, dan data gaps sebelum memakai brief." : "Review supporting evidence, counterevidence, and data gaps before using a brief."}</small>
+      </div>
 
       {/* Filter Bar */}
       <section className="filter-bar" aria-label={isId ? "Filter investigasi" : "Investigation filters"}>

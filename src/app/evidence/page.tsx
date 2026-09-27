@@ -22,6 +22,12 @@ export default async function EvidencePage({ searchParams }: { searchParams: Pro
     <Link href="/">NADI home</Link>
     <p className="eyebrow">EVIDENCE · SYNTHETIC EXAMPLE</p>
     <h1>Follow the calculation</h1>
+    <p className="page-subtitle">This page shows how one company-level signal is calculated and where each input comes from.</p>
+    <div className="flow-guide">
+      <strong>What should you learn here?</strong>
+      <span>Compare the prior and current periods, then inspect the four derived features. Unknown values stay unknown; they are not treated as zero.</span>
+      <small>This is a fictional example, not a persisted provider record or an economic finding.</small>
+    </div>
     <p>Fictional company SYNTHETIC-ONLY-001. All amounts are illustrative IDR units. No live provider data or persisted signal run is loaded.</p>
     <nav aria-label="Synthetic scenarios" className="scenarios">
       {(["risk", "opportunity", "missing"] as const).map(key => <Link key={key} href={`/evidence?example=${key}`} aria-current={selected === key ? "page" : undefined}>{key === "missing" ? "Missing data" : key === "risk" ? "Risk example" : "Opportunity example"}</Link>)}

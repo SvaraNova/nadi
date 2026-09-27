@@ -140,6 +140,11 @@ export default function RadarPage() {
             </button>
           </div>
         </div>
+      <div className="flow-guide">
+        <strong>{isId ? "Apa yang ditunjukkan radar ini?" : "What does this radar show?"}</strong>
+        <span>{isId ? "Radar mengurutkan sektor berdasarkan kekuatan dan sebaran pola laporan keuangan. Pilih sektor untuk melihat perusahaan dan perhitungan yang membentuk sinyal." : "The radar ranks sectors by the strength and breadth of financial-reporting patterns. Select a sector to inspect the companies and calculations behind its signal."}</span>
+        <small>{isId ? "Skor 0–100 adalah heuristik, bukan probabilitas atau prediksi." : "Scores from 0–100 are heuristics, not probabilities or forecasts."}</small>
+      </div>
       </div>
 
       {/* Filter Chips Strip */}

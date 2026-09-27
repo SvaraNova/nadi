@@ -56,28 +56,35 @@ export default function OverviewPage() {
       datasetTimestamp="2026-09-15 08:00 WIB"
       activePeriod="Q1-2026 vs Q1-2025"
     >
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-              <span className="badge badge-live">{isId ? "Peringatan Dini Nasional" : "National Early-Warning Pulse"}</span>
-              <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{isId ? "Siklus Laporan: Q1-2026" : "Reporting Cycle: Q1-2026"}</span>
-              <span className="kbd-shortcut">{isId ? "Tekan ⌘K untuk Pencarian" : "Press ⌘K to Search"}</span>
-            </div>
-            <h1>{isId ? "Detak Ekonomi Nasional & Pergeseran Sektor" : "National Economic Pulse & Financial Shifts"}</h1>
-            <p className="page-subtitle">
-              {isId
-                ? "Deteksi dini sinyal risiko dan peluang ekonomi melalui laporan keuangan kuartalan emiten Bursa Efek Indonesia (IDX)."
-                : "Early-warning macroeconomic signals detected through quarterly audited disclosures across Indonesian listed entities."}
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <Link href={"/radar" as Route} className="btn btn-primary btn-sm">
-              {isId ? "Buka Radar Sektor" : "Explore Sector Radar"} <IconArrowRight size={14} />
-            </Link>
-          </div>
+      {/* Orientation: explain the product before showing the numbers. */}
+      <section className="orientation-panel" aria-labelledby="orientation-heading">
+        <div className="orientation-intro">
+          <span className="orientation-kicker">{isId ? "CARA KERJA NADI" : "HOW NADI WORKS"}</span>
+          <h2 id="orientation-heading">
+            {isId
+              ? "Temukan sektor yang berubah, periksa buktinya, lalu susun brief."
+              : "Find a changing sector, inspect the evidence, then write a brief."}
+          </h2>
+          <p>
+            {isId
+              ? "NADI membantu analis memprioritaskan sektor berdasarkan pola laporan keuangan perusahaan. Sinyal ini adalah titik awal investigasi—bukan prediksi krisis atau rekomendasi investasi."
+              : "NADI helps analysts prioritize sectors from patterns in company filings. A signal is a starting point for investigation—not a crisis forecast or investment recommendation."}
+          </p>
         </div>
+        <ol className="orientation-steps">
+          <li><span className="orientation-step-number">1</span><div><strong>{isId ? "Temukan sinyal" : "Find a signal"}</strong><span>{isId ? "Lihat sektor yang menunjukkan perubahan luas." : "See sectors with broad changes."}</span></div></li>
+          <li><span className="orientation-step-number">2</span><div><strong>{isId ? "Periksa bukti" : "Inspect evidence"}</strong><span>{isId ? "Telusuri perusahaan, metrik, dan sumbernya." : "Trace companies, metrics, and sources."}</span></div></li>
+          <li><span className="orientation-step-number">3</span><div><strong>{isId ? "Buat brief" : "Make a brief"}</strong><span>{isId ? "Uji interpretasi dengan AI dan counterevidence." : "Test interpretations with AI and counterevidence."}</span></div></li>
+        </ol>
+      </section>
+      <div className="demo-notice" role="note">
+        <IconInfoCircle size={16} />
+        <span><strong>{isId ? "Mode demo sintetis:" : "Synthetic demo mode:"}</strong>{" "}{isId ? "Angka di halaman ini adalah data simulasi untuk memahami alur produk, bukan temuan ekonomi riil." : "The figures on this page are simulated to demonstrate the product flow, not real economic findings."}</span>
+        <Link href={"/data" as Route}>{isId ? "Pelajari metodologi" : "Learn about the methodology"} <IconArrowRight size={12} /></Link>
+      </div>
+      <div className="section-guide">
+        <div><span className="section-guide-label">{isId ? "RINGKASAN SINYAL" : "SIGNAL SUMMARY"}</span><p>{isId ? "Angka berikut merangkum pola yang ditemukan. Buka radar untuk melihat perusahaan di baliknya." : "These figures summarize detected patterns. Open the radar to see the companies behind them."}</p></div>
+        <span className="help-chip" title={isId ? "Skor mengukur kekuatan pola heuristik, bukan probabilitas." : "Scores measure heuristic pattern strength, not probability."}>ⓘ {isId ? "Cara membaca skor" : "How to read scores"}</span>
       </div>
 
       {/* Metabase-Style Macro Telemetry Grid */}

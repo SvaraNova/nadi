@@ -7,7 +7,7 @@ import { IconCopy, IconCheck } from "../../components/ui/Icons";
 import { SECTOR_DEFINITIONS } from "../../domain/sectors-dataset";
 import { useLanguage } from "../../lib/i18n";
 
-type TabKey = "sources" | "datasets" | "coverage" | "public_indicators" | "methodology";
+type TabKey = "sources" | "datasets" | "coverage" | "public_indicators" | "methodology" | "glossary";
 
 export default function DataAndMethodPage() {
   const { language } = useLanguage();
@@ -49,7 +49,8 @@ export default function DataAndMethodPage() {
     { key: "datasets", label: isId ? "2. Putaran Dataset & Hash" : "2. Dataset Runs & Hashes" },
     { key: "coverage", label: isId ? "3. Alam Semesta & Cakupan" : "3. Universe & Coverage" },
     { key: "public_indicators", label: isId ? "4. Konteks Makro Publik" : "4. Public Macro Context" },
-    { key: "methodology", label: isId ? "5. Spesifikasi Matematika Metode v0.1" : "5. Method v0.1 Math Spec" },
+    { key: "methodology", label: isId ? "5. Spesifikasi Metode v0.1" : "5. Method v0.1 Spec" },
+    { key: "glossary", label: isId ? "6. Glosarium" : "6. Glossary" },
   ];
 
   return (
@@ -69,6 +70,11 @@ export default function DataAndMethodPage() {
             ? "Audit asal data (provenance), putaran dataset historis, metrik cakupan kohort, pemetaan statistik publik, dan formula deterministik."
             : "Audit ingestion provenance, historical dataset runs, cohort coverage metrics, public statistical mappings, and deterministic formulas."}
         </p>
+      <div className="flow-guide">
+        <strong>{isId ? "Status implementasi saat ini" : "Current implementation status"}</strong>
+        <span>{isId ? "Workspace ini dapat mendemonstrasikan alur dengan data sintetis. Ingestion live, persistence penuh, dan hasil LLM produksi masih memerlukan konfigurasi provider, database, dan model." : "This workspace demonstrates the flow with synthetic data. Live ingestion, full persistence, and production LLM results still require configured providers, a database, and a model."}</span>
+        <small>{isId ? "Jangan membaca contoh sintetis sebagai temuan ekonomi nyata." : "Do not interpret synthetic examples as real economic findings."}</small>
+      </div>
       </div>
 
       {/* Segmented Control Navigation */}
@@ -494,6 +500,34 @@ export default function DataAndMethodPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {activeTab === "glossary" && (
+        <div className="card">
+          <div className="card-eyebrow">{isId ? "Bahasa Produk" : "Product language"}</div>
+          <h2 style={{ margin: "0 0 6px", fontSize: "1.2rem" }}>{isId ? "Glosarium NADI" : "NADI glossary"}</h2>
+          <p style={{ color: "var(--slate-600)", marginTop: 0 }}>{isId ? "Definisi singkat untuk membaca alur radar sampai brief." : "Short definitions for reading the radar-to-brief workflow."}</p>
+          <dl className="glossary-grid">
+            {(isId ? [
+              ["Signal", "Pola perubahan fundamental yang dihitung secara deterministik."],
+              ["Kelompok perusahaan", "Perusahaan yang dibandingkan dalam satu sektor atau industri."],
+              ["Cakupan data", "Proporsi perusahaan dengan input yang cukup untuk dihitung."],
+              ["Sebaran pola", "Proporsi perusahaan yang menunjukkan arah signal yang sama."],
+              ["Evidence", "Observasi atau perhitungan yang mendukung suatu klaim."],
+              ["Counterevidence", "Evidence yang menantang atau membatasi interpretasi utama."],
+              ["Mode data", "Penanda apakah data berasal dari live, snapshot, atau simulasi sintetis."],
+              ["Brief", "Ringkasan yang menggabungkan observasi, interpretasi, bukti, dan keterbatasan."],
+            ] : [
+              ["Signal", "A deterministically calculated pattern in company fundamentals."],
+              ["Company group", "Companies compared within one sector or industry."],
+              ["Coverage", "The share of companies with enough inputs to calculate."],
+              ["Breadth", "The share of companies showing the same signal direction."],
+              ["Evidence", "An observation or calculation supporting a claim."],
+              ["Counterevidence", "Evidence that challenges or limits the main interpretation."],
+              ["Data mode", "Whether data is live, snapshot, or synthetic simulation."],
+              ["Brief", "A reviewable summary of observations, interpretations, evidence, and limits."],
+            ]).map(([term, definition]) => <div key={term}><dt>{term}</dt><dd>{definition}</dd></div>)}
+          </dl>
         </div>
       )}
     </AppShell>
