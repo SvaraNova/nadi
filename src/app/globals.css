@@ -1091,6 +1091,12 @@ tbody td {
   font-size: 0.6875rem;
   color: var(--slate-500);
 }
+.command-highlight {
+  background: var(--warn-200);
+  color: var(--warn-900);
+  border-radius: 2px;
+  padding: 0 1px;
+}
 .command-category-tag {
   font-size: 0.625rem;
   font-weight: 700;
