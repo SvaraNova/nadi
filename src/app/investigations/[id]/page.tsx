@@ -11,6 +11,19 @@ import { useLanguage } from "../../../lib/i18n";
 import type { StoredInvestigationRecord } from "../../../server/investigation/investigation-service";
 import type { Route } from "next";
 
+const TOOL_LABELS: Record<string, { id: string; en: string }> = {
+  get_signal: { id: "Membaca sinyal sektor", en: "Reading sector signal" },
+  list_company_signals: { id: "Memeriksa sinyal perusahaan", en: "Inspecting company signals" },
+  get_company_evidence: { id: "Mengambil bukti perusahaan", en: "Retrieving company evidence" },
+  get_counterevidence: { id: "Mencari bukti penyangkal", en: "Checking counterevidence" },
+  compare_public_indicator: { id: "Membandingkan indikator publik", en: "Comparing public indicator" },
+  get_public_indicator: { id: "Mengambil indikator publik", en: "Retrieving public indicator" },
+};
+
+function getToolLabel(tool: string, isId: boolean): string {
+  return TOOL_LABELS[tool]?.[isId ? "id" : "en"] ?? tool.replace(/_/g, " ");
+}
+
 interface Props {
   params: Promise<{ id: string }>;
 }
@@ -277,7 +290,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                     {ev.tool ? (
                       <>
                         <IconTerminal size={13} />
-                        {isId ? "Alat: " : "Tool: "}{ev.tool}
+                        {getToolLabel(ev.tool, isId)}
                       </>
                     ) : (
                       ev.type.replace(/_/g, " ")
