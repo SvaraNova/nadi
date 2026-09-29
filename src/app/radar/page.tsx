@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { SignalDirectionBadge } from "../../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../../components/ui/InlineSparkline";
-import { buildSectorSignalRuns, SECTOR_DEFINITIONS, type SectorSignalSummary } from "../../domain/sectors-dataset";
+import { SECTOR_DEFINITIONS, type SectorSignalSummary } from "../../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../../lib/i18n";
 import { formatScore } from "../../lib/formatters";
@@ -23,7 +23,7 @@ export default function RadarPage() {
   const { language, t } = useLanguage();
   const isId = language === "id";
   const [liveSectors, setLiveSectors] = useState<SectorSignalSummary[]>([]);
-  const allSectors = useMemo(() => liveSectors.length ? liveSectors : buildSectorSignalRuns(), [liveSectors]);
+  const allSectors = liveSectors;
   useEffect(() => {
     void fetch("/api/signal-runs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveSectors(payload?.sectors ?? [])).catch(() => setLiveSectors([]));
   }, []);
@@ -111,9 +111,11 @@ export default function RadarPage() {
     };
     return nameMap[s.id] || s.name;
   };
-
+  if (!liveSectors.length) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Memuat radar live..." : "Loading live radar..."}</h2><p>{isId ? "Radar hanya menampilkan putaran sinyal yang tersimpan di PostgreSQL." : "Radar only displays signal runs persisted in PostgreSQL."}</p></div></AppShell>;
+  }
   return (
-    <AppShell dataMode={liveSectors.length ? "live" : "synthetic"} activePeriod={`${period} vs ${period === "Q1-2026" ? "Q1-2025" : "Q4-2024"}`}>
+    <AppShell dataMode="live" activePeriod={`${period} vs ${period === "Q1-2026" ? "Q1-2025" : "Q4-2024"}`}>
       {/* Header */}
       <div className="page-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>

@@ -6,7 +6,7 @@ import { AppShell } from "../components/layout/AppShell";
 import { SignalDirectionBadge } from "../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../components/ui/InlineSparkline";
 import { IconArrowRight, IconShieldCheck, IconInfoCircle } from "../components/ui/Icons";
-import { buildSectorSignalRuns, type SectorSignalSummary } from "../domain/sectors-dataset";
+import type { SectorSignalSummary } from "../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../lib/i18n";
 import { formatScore } from "../lib/formatters";
@@ -16,7 +16,7 @@ export default function OverviewPage() {
   const { language, t } = useLanguage();
   const isId = language === "id";
   const [liveSectors, setLiveSectors] = useState<SectorSignalSummary[]>([]);
-  const sectors = useMemo(() => liveSectors.length ? liveSectors : buildSectorSignalRuns(), [liveSectors]);
+  const sectors = liveSectors;
   useEffect(() => {
     void fetch("/api/signal-runs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveSectors(payload?.sectors ?? [])).catch(() => setLiveSectors([]));
   }, []);
@@ -54,10 +54,12 @@ export default function OverviewPage() {
     };
     return nameMap[s.id] || s.name;
   };
-
+  if (!liveSectors.length) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Memuat data live..." : "Loading live data..."}</h2><p>{isId ? "Dashboard hanya menampilkan data live dari PostgreSQL." : "The dashboard only displays live data from PostgreSQL."}</p></div></AppShell>;
+  }
   return (
     <AppShell
-      dataMode={liveSectors.length ? "live" : "synthetic"}
+      dataMode="live"
       datasetTimestamp="2026-09-15 08:00 WIB"
       activePeriod="Q1-2026 vs Q1-2025"
     >
