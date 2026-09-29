@@ -146,11 +146,17 @@ export default function SignalDetailPage({ params }: Props) {
     });
   };
 
-  const handleStartInvestigation = (e: React.FormEvent) => {
+  const handleStartInvestigation = async (e: React.FormEvent) => {
     e.preventDefault();
-    const invId = `inv-${sector.id}-${Date.now().toString(36)}`;
+    const response = await fetch("/api/investigations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cohortId: sector.id, signalRunId: sector.runId, question: analystQuestion }),
+    });
+    if (!response.ok) return;
+    const data = await response.json() as { id: string };
     const encodedQ = encodeURIComponent(analystQuestion);
-    router.push(`/investigations/${invId}?cohort=${sector.id}&run=${sector.runId}&q=${encodedQ}` as Route);
+    router.push(`/investigations/${data.id}?cohort=${sector.id}&run=${sector.runId}&q=${encodedQ}` as Route);
   };
 
   // Trajectory historical data (5 quarters)
