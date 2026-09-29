@@ -36,6 +36,10 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [liveSectors, setLiveSectors] = useState<{ id: string; name: string; runId: string; cohortSignal: { label: string; eligibleCount: number; totalMembers: number } }[]>([]);
+  useEffect(() => {
+    void fetch("/api/signal-runs/live").then((r) => (r.ok ? r.json() : null)).then((p) => setLiveSectors(p?.sectors ?? [])).catch(() => setLiveSectors([]));
+  }, []);
 
   // Build command list
   const commands: CommandItem[] = useMemo(() => {
@@ -82,32 +86,21 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
         action: () => { router.push("/data" as Route); onClose(); },
       },
 
-      // Sectors
-      {
-        id: "sec-nickel",
+      // Sectors (live, only sectors with a computed signal run are searchable)
+      ...liveSectors.map((sector): CommandItem => ({
+        id: `sec-${sector.id}`,
         category: "Sectors",
-        title: "Basic Materials — Nickel & Minerals",
-        subtitle: "Mixed Signal (Risk 50 / Opp 50) · 5 Constituents",
-        action: () => { router.push("/radar/run-basic-materials-2026-03-31/basic-materials" as Route); onClose(); },
-      },
-      {
-        id: "sec-logistics",
-        category: "Sectors",
-        title: "Industrial — Logistics & Transport",
-        subtitle: "Opportunity Signal (Opp 75.0) · 4 Constituents",
-        action: () => { router.push("/radar/run-industrial-logistics-2026-03-31/industrial-logistics" as Route); onClose(); },
-      },
-      {
-        id: "sec-telco",
-        category: "Sectors",
-        title: "Telecommunications & Digital Infrastructure",
-        subtitle: "Insufficient Data (<60% coverage) · 3 Constituents",
-        action: () => { router.push("/radar/run-telecommunications-2026-03-31/telecommunications" as Route); onClose(); },
-      },
+        title: sector.name,
+        subtitle: `${sector.cohortSignal.label.replaceAll("_", " ")} · ${sector.cohortSignal.eligibleCount}/${sector.cohortSignal.totalMembers} eligible`,
+        action: () => { router.push(`/radar/stored/${sector.runId}` as Route); onClose(); },
+      })),
     ];
 
-    // Constituents
+    // Constituents (only for sectors that already have a live signal run to link to)
+    const runIdBySector = new Map(liveSectors.map((s) => [s.id, s.runId]));
     SECTOR_DEFINITIONS.forEach((sector) => {
+      const runId = runIdBySector.get(sector.id);
+      if (!runId) return;
       sector.companies.forEach((co) => {
         items.push({
           id: `co-${co.symbol}`,
@@ -115,7 +108,7 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
           title: `${co.symbol} — ${co.name}`,
           subtitle: `In ${sector.name} (${co.marketCapCategory})`,
           action: () => {
-            router.push(`/radar/run-${sector.id}-2026-03-31/${sector.id}` as Route);
+            router.push(`/radar/stored/${runId}` as Route);
             onClose();
           },
         });
@@ -150,7 +143,7 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
     }
 
     return items;
-  }, [router, onClose, onRoleChange]);
+  }, [router, onClose, onRoleChange, liveSectors]);
 
   // Filter commands
   const filteredCommands = useMemo(() => {
