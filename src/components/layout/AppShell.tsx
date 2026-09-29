@@ -13,6 +13,8 @@ import {
   IconBrief,
   IconDataMethod,
   IconSearch,
+  IconMenu,
+  IconClose,
 } from "../ui/Icons";
 import type { Route } from "next";
 import { useLanguage } from "../../lib/i18n";
@@ -34,6 +36,17 @@ export function AppShell({
   const { language, setLanguage, t } = useLanguage();
   const [activeRole, setActiveRole] = useState<"analyst" | "operator" | "admin">("analyst");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // Lock body scroll while mobile nav is open
+  useEffect(() => {
+    if (isMobileNavOpen) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [isMobileNavOpen]);
 
   // Global ⌘K / Ctrl+K listener
   useEffect(() => {
@@ -95,8 +108,12 @@ export function AppShell({
         {t("nav.skipToContent")}
       </a>
 
+      {isMobileNavOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsMobileNavOpen(false)} aria-hidden="true" />
+      )}
+
       {/* Linear-Style Unified Left Sidebar */}
-      <aside className="sidebar" aria-label="Main Navigation">
+      <aside className={`sidebar ${isMobileNavOpen ? "sidebar-open" : ""}`} aria-label="Main Navigation">
         <div className="sidebar-header">
           <Link href="/" className="sidebar-brand">
             <div className="sidebar-brand-emblem">N</div>
@@ -108,6 +125,14 @@ export function AppShell({
               <span className="sidebar-subtitle">{t("brand.fullName")}</span>
             </div>
           </Link>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={() => setIsMobileNavOpen(false)}
+            aria-label={language === "id" ? "Tutup navigasi" : "Close navigation"}
+          >
+            <IconClose size={18} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -183,6 +208,14 @@ export function AppShell({
 
         {/* Sticky Topbar */}
         <header className="topbar">
+          <button
+            type="button"
+            className="mobile-nav-toggle"
+            onClick={() => setIsMobileNavOpen(true)}
+            aria-label={language === "id" ? "Buka navigasi" : "Open navigation"}
+          >
+            <IconMenu size={20} />
+          </button>
           <nav className="breadcrumbs" aria-label="Breadcrumb">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1;
@@ -200,7 +233,7 @@ export function AppShell({
           </nav>
 
           {/* Right Actions: Search Trigger, Language Switcher & Mode */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="topbar-actions">
             <button
               type="button"
               className="topbar-search-trigger"
@@ -208,21 +241,13 @@ export function AppShell({
               aria-label="Open Command Palette (Press ⌘K)"
             >
               <IconSearch size={14} />
-              <span style={{ flex: 1, textAlign: "left" }}>{t("nav.quickSearch")}</span>
+              <span className="topbar-search-label">{t("nav.quickSearch")}</span>
               <span className="kbd-shortcut">⌘K</span>
             </button>
 
             {/* Language Switcher */}
             <div
               className="lang-switcher"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                background: "var(--slate-100)",
-                padding: "2px",
-                borderRadius: "6px",
-                border: "1px solid var(--border-light)",
-              }}
               role="group"
               aria-label={t("action.switchLanguage")}
             >
@@ -268,13 +293,14 @@ export function AppShell({
 
             <DataModeBadge mode={dataMode} size="sm" />
 
-            <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }} title="Active comparison period">
+            <span className="topbar-period" title="Active comparison period">
               <strong className="tabular-nums">{activePeriod}</strong>
             </span>
 
-            <Link href={"/data" as Route} className="btn btn-secondary btn-sm" title={t("action.viewMethod")}>
+            <Link href={"/data" as Route} className="btn btn-secondary btn-sm topbar-method-link" title={t("action.viewMethod")}>
               {t("action.viewMethod")}
             </Link>
+
           </div>
         </header>
 

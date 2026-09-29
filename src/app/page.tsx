@@ -1,22 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { SignalDirectionBadge } from "../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../components/ui/InlineSparkline";
-import { IconArrowRight, IconShieldCheck, IconInfoCircle } from "../components/ui/Icons";
-import { buildSectorSignalRuns, type SectorSignalSummary } from "../domain/sectors-dataset";
+import { IconArrowRight, IconShieldCheck } from "../components/ui/Icons";
+import type { SectorSignalSummary } from "../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../lib/i18n";
 import { formatScore } from "../lib/formatters";
+import { SectorMatrix } from "../components/ui/SectorMatrix";
 
 export default function OverviewPage() {
   const { language, t } = useLanguage();
   const isId = language === "id";
-  const sectors = useMemo(() => buildSectorSignalRuns(), []);
+  const [liveSectors, setLiveSectors] = useState<SectorSignalSummary[]>([]);
+  const sectors = liveSectors;
+  useEffect(() => {
+    void fetch("/api/signal-runs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveSectors(payload?.sectors ?? [])).catch(() => setLiveSectors([]));
+  }, []);
   const [hoveredSector, setHoveredSector] = useState<SectorSignalSummary | null>(null);
   const [matrixView, setMatrixView] = useState<"chart" | "table">("chart");
+  const [latestInvestigation, setLatestInvestigation] = useState<{ id: string; status: string; brief: { cohortId?: string; investigationQuestions?: string[] } | null } | null>(null);
+  const [latestBrief, setLatestBrief] = useState<{ id: string; title: string; cohort_id: string; status: string; current_version: number } | null>(null);
+  useEffect(() => {
+    void fetch("/api/v1/investigations/live").then((r) => r.ok ? r.json() : null).then((p) => setLatestInvestigation(p?.investigations?.[0] ?? null)).catch(() => setLatestInvestigation(null));
+    void fetch("/api/v1/briefs/live").then((r) => r.ok ? r.json() : null).then((p) => setLatestBrief(p?.briefs?.[0] ?? null)).catch(() => setLatestBrief(null));
+  }, []);
 
   const pressureSectors = sectors.filter((s) => s.cohortSignal.label === "risk");
   const opportunitySectors = sectors.filter((s) => s.cohortSignal.label === "opportunity");
@@ -49,35 +60,43 @@ export default function OverviewPage() {
     };
     return nameMap[s.id] || s.name;
   };
-
+  if (!liveSectors.length) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Memuat data live..." : "Loading live data..."}</h2><p>{isId ? "Dashboard hanya menampilkan data live dari PostgreSQL." : "The dashboard only displays live data from PostgreSQL."}</p></div></AppShell>;
+  }
   return (
     <AppShell
-      dataMode="synthetic"
+      dataMode="live"
       datasetTimestamp="2026-09-15 08:00 WIB"
       activePeriod="Q1-2026 vs Q1-2025"
     >
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-              <span className="badge badge-live">{isId ? "Peringatan Dini Nasional" : "National Early-Warning Pulse"}</span>
-              <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{isId ? "Siklus Laporan: Q1-2026" : "Reporting Cycle: Q1-2026"}</span>
-              <span className="kbd-shortcut">{isId ? "Tekan ⌘K untuk Pencarian" : "Press ⌘K to Search"}</span>
-            </div>
-            <h1>{isId ? "Detak Ekonomi Nasional & Pergeseran Sektor" : "National Economic Pulse & Financial Shifts"}</h1>
-            <p className="page-subtitle">
-              {isId
-                ? "Deteksi dini sinyal risiko dan peluang ekonomi melalui laporan keuangan kuartalan emiten Bursa Efek Indonesia (IDX)."
-                : "Early-warning macroeconomic signals detected through quarterly audited disclosures across Indonesian listed entities."}
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <Link href={"/radar" as Route} className="btn btn-primary btn-sm">
-              {isId ? "Buka Radar Sektor" : "Explore Sector Radar"} <IconArrowRight size={14} />
-            </Link>
-          </div>
+      {/* Orientation: explain the product before showing the numbers. */}
+      <section className="orientation-panel" aria-labelledby="orientation-heading">
+        <div className="orientation-intro">
+          <span className="orientation-kicker">{isId ? "CARA KERJA NADI" : "HOW NADI WORKS"}</span>
+          <h2 id="orientation-heading">
+            {isId
+              ? "Temukan sektor yang berubah, periksa buktinya, lalu susun brief."
+              : "Find a changing sector, inspect the evidence, then write a brief."}
+          </h2>
+          <p>
+            {isId
+              ? "NADI membantu analis memprioritaskan sektor berdasarkan pola laporan keuangan perusahaan. Sinyal ini adalah titik awal investigasi—bukan prediksi krisis atau rekomendasi investasi."
+              : "NADI helps analysts prioritize sectors from patterns in company filings. A signal is a starting point for investigation—not a crisis forecast or investment recommendation."}
+          </p>
         </div>
+        <ol className="orientation-steps">
+          <li><span className="orientation-step-number">1</span><div><strong>{isId ? "Temukan sinyal" : "Find a signal"}</strong><span>{isId ? "Lihat sektor yang menunjukkan perubahan luas." : "See sectors with broad changes."}</span></div></li>
+          <li><span className="orientation-step-number">2</span><div><strong>{isId ? "Periksa bukti" : "Inspect evidence"}</strong><span>{isId ? "Telusuri perusahaan, metrik, dan sumbernya." : "Trace companies, metrics, and sources."}</span></div></li>
+          <li><span className="orientation-step-number">3</span><div><strong>{isId ? "Buat brief" : "Make a brief"}</strong><span>{isId ? "Uji interpretasi dengan AI dan counterevidence." : "Test interpretations with AI and counterevidence."}</span></div></li>
+        </ol>
+      </section>
+      <div className="live-run-banner" role="status">
+        <span><strong>{isId ? "Data langsung aktif:" : "Live data active:"}</strong>{" "}{isId ? `Ringkasan ini membaca ${liveSectors.length} signal run live dari PostgreSQL.` : `This summary reads ${liveSectors.length} live signal runs from PostgreSQL.`}</span>
+        <Link href={"/radar" as Route}>{isId ? "Buka radar live" : "Open live radar"} <IconArrowRight size={12} /></Link>
+      </div>
+      <div className="section-guide">
+        <div><span className="section-guide-label">{isId ? "RINGKASAN SINYAL" : "SIGNAL SUMMARY"}</span><p>{isId ? "Angka berikut merangkum pola yang ditemukan. Buka radar untuk melihat perusahaan di baliknya." : "These figures summarize detected patterns. Open the radar to see the companies behind them."}</p></div>
+        <span className="help-chip" title={isId ? "Skor mengukur kekuatan pola heuristik, bukan probabilitas." : "Scores measure heuristic pattern strength, not probability."}>ⓘ {isId ? "Cara membaca skor" : "How to read scores"}</span>
       </div>
 
       {/* Metabase-Style Macro Telemetry Grid */}
@@ -191,14 +210,14 @@ export default function OverviewPage() {
       <section className="card" style={{ marginBottom: "20px", padding: 0 }} aria-labelledby="pulse-matrix-heading">
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
           <div>
-            <div className="card-eyebrow">{isId ? "Pemetaan Koordinat Sektor Interaktif" : "Interactive Sector Coordinate Mapping"}</div>
+            <div className="card-eyebrow">{isId ? "Pemetaan Sektor & Diagnostik Finansial" : "Sector Mapping & Financial Diagnostics"}</div>
             <h2 id="pulse-matrix-heading" style={{ margin: "2px 0 0", fontSize: "1.1rem", color: "var(--slate-950)" }}>
-              {isId ? "Bidang Koordinat Peluang vs. Risiko" : "Opportunity vs. Risk Coordinate Plane"}
+              {isId ? "Peta Kondisi Sektor: Tekanan vs. Peluang" : "Sector Pulse: Pressure vs. Opportunity"}
             </h2>
             <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", marginTop: "2px" }}>
               {isId
-                ? "Sumbu-X: Skor Peluang (0–100) · Sumbu-Y: Skor Risiko (0–100) · Ukuran lingkaran sebanding dengan jumlah emiten."
-                : "X-Axis: Opportunity Score (0–100) · Y-Axis: Risk Score (0–100) · Circle size proportional to constituent count."}
+                ? "Pilih sektor untuk langsung melihat tingkat risiko, peluang, dan penjelasan kondisi keuangannya dalam bahasa yang mudah dipahami."
+                : "Select a sector to instantly view its risk, opportunity, and clear financial health summary."}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -206,9 +225,9 @@ export default function OverviewPage() {
               type="button"
               className={`btn btn-sm ${matrixView === "chart" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => setMatrixView("chart")}
-              aria-label={isId ? "Tampilkan sebagai Grafik 2D" : "View as 2D Coordinate Chart"}
+              aria-label={isId ? "Tampilkan sebagai Peta Visual" : "View as Visual Board"}
             >
-              {isId ? "Grafik 2D" : "2D Chart"}
+              {isId ? "Peta Visual" : "Visual Board"}
             </button>
             <button
               type="button"
@@ -222,148 +241,11 @@ export default function OverviewPage() {
         </div>
 
         {matrixView === "chart" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 300px" }}>
-            {/* Matrix Coordinate Plane */}
-            <div style={{ position: "relative", height: "340px", margin: "16px", background: "var(--slate-50)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)", overflow: "hidden" }}>
-              {/* Axes */}
-              <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "var(--border-subtle)", borderTop: "1px dashed var(--slate-300)" }} />
-              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: "1px", background: "var(--border-subtle)", borderLeft: "1px dashed var(--slate-300)" }} />
-
-              {/* Quadrant Indicators */}
-              <div style={{ position: "absolute", top: "10px", left: "12px", fontSize: "0.6875rem", fontWeight: 700, padding: "2px 8px", background: "var(--risk-50)", color: "var(--risk-800)", borderRadius: "var(--radius-xs)", border: "1px solid var(--risk-border)" }}>
-                {isId ? "Kuadran I: Tekanan Tinggi" : "Quadrant I: High Pressure"}
-              </div>
-              <div style={{ position: "absolute", top: "10px", right: "12px", fontSize: "0.6875rem", fontWeight: 700, padding: "2px 8px", background: "var(--mixed-50)", color: "var(--mixed-800)", borderRadius: "var(--radius-xs)", border: "1px solid var(--mixed-border)" }}>
-                {isId ? "Kuadran II: Sinyal Campuran" : "Quadrant II: Volatile / Divergent"}
-              </div>
-              <div style={{ position: "absolute", bottom: "10px", left: "12px", fontSize: "0.6875rem", fontWeight: 700, padding: "2px 8px", background: "var(--slate-100)", color: "var(--slate-600)", borderRadius: "var(--radius-xs)", border: "1px solid var(--border-light)" }}>
-                {isId ? "Kuadran IV: Stabil / Pasif" : "Quadrant IV: Baseline / Inert"}
-              </div>
-              <div style={{ position: "absolute", bottom: "10px", right: "12px", fontSize: "0.6875rem", fontWeight: 700, padding: "2px 8px", background: "var(--opp-50)", color: "var(--opp-800)", borderRadius: "var(--radius-xs)", border: "1px solid var(--opp-border)" }}>
-                {isId ? "Kuadran III: Peluang Tinggi" : "Quadrant III: High Opportunity"}
-              </div>
-
-              {/* Plotted Sectors */}
-              {sectors.map((s) => {
-                const opp = Number(s.cohortSignal.opportunityScore || 0);
-                const risk = Number(s.cohortSignal.riskScore || 0);
-                const leftPercent = 14 + (opp / 100) * 72;
-                const bottomPercent = 14 + (risk / 100) * 72;
-                const diameter = 36 + s.cohortSignal.eligibleCount * 3;
-
-                let bgColor = "var(--slate-600)";
-                if (s.cohortSignal.label === "risk") bgColor = "var(--risk-600)";
-                else if (s.cohortSignal.label === "opportunity") bgColor = "var(--opp-600)";
-                else if (s.cohortSignal.label === "mixed") bgColor = "var(--mixed-700)";
-
-                const isHovered = hoveredSector?.id === s.id;
-
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/radar/${s.runId}/${s.id}` as Route}
-                    onMouseEnter={() => setHoveredSector(s)}
-                    onMouseLeave={() => setHoveredSector(null)}
-                    style={{
-                      position: "absolute",
-                      left: `${leftPercent}%`,
-                      bottom: `${bottomPercent}%`,
-                      width: `${diameter}px`,
-                      height: `${diameter}px`,
-                      backgroundColor: bgColor,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--white)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "0.6875rem",
-                      fontWeight: 800,
-                      transform: isHovered ? "translate(-50%, 50%) scale(1.25)" : "translate(-50%, 50%)",
-                      boxShadow: isHovered ? "0 0 0 3px var(--white), 0 4px 12px rgba(0,0,0,0.25)" : "0 1px 3px rgba(0,0,0,0.15)",
-                      transition: "transform 0.15s ease, box-shadow 0.15s ease",
-                      textDecoration: "none",
-                      zIndex: isHovered ? 10 : 2,
-                    }}
-                    title={`${getSectorDisplayName(s)} (${isId ? "Risiko" : "Risk"}: ${risk}, ${isId ? "Peluang" : "Opp"}: ${opp})`}
-                  >
-                    {s.id.slice(0, 3).toUpperCase()}
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Snapping Inspector Panel */}
-            <div style={{ padding: "16px 18px", background: "var(--slate-50)", borderLeft: "1px solid var(--border-light)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: "0.6875rem", fontWeight: 700, textTransform: "uppercase", color: "var(--slate-500)", letterSpacing: "0.06em", marginBottom: "8px" }}>
-                  {isId ? "Node Sektor Terpilih" : "Active Telemetry Node"}
-                </div>
-
-                {hoveredSector ? (
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                      <SignalDirectionBadge direction={hoveredSector.cohortSignal.label} size="sm" />
-                      <span style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{hoveredSector.industry}</span>
-                    </div>
-                    <h3 style={{ margin: "2px 0 10px", fontSize: "0.95rem", color: "var(--slate-950)", fontWeight: 700 }}>
-                      {getSectorDisplayName(hoveredSector)}
-                    </h3>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
-                      <div style={{ background: "var(--white)", padding: "8px 10px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)" }}>
-                        <div style={{ fontSize: "0.625rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 600 }}>
-                          {isId ? "Skor Risiko" : "Risk Score"}
-                        </div>
-                        <div
-                          className="tabular-nums"
-                          style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--risk-700)" }}
-                          title={formatScore(hoveredSector.cohortSignal.riskScore, language).title}
-                        >
-                          {formatScore(hoveredSector.cohortSignal.riskScore, language).formatted}
-                        </div>
-                      </div>
-                      <div style={{ background: "var(--white)", padding: "8px 10px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)" }}>
-                        <div style={{ fontSize: "0.625rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 600 }}>
-                          {isId ? "Skor Peluang" : "Opp Score"}
-                        </div>
-                        <div
-                          className="tabular-nums"
-                          style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--opp-700)" }}
-                          title={formatScore(hoveredSector.cohortSignal.opportunityScore, language).title}
-                        >
-                          {formatScore(hoveredSector.cohortSignal.opportunityScore, language).formatted}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginBottom: "8px", lineHeight: 1.4 }}>
-                      <strong>{isId ? "Pendorong Utama:" : "Driver:"}</strong> {hoveredSector.dominantDriver}
-                    </div>
-
-                    <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)" }}>
-                      {isId
-                        ? `Sampel: ${hoveredSector.cohortSignal.eligibleCount} dari ${hoveredSector.cohortSignal.totalMembers} emiten.`
-                        : `Sample: ${hoveredSector.cohortSignal.eligibleCount} of ${hoveredSector.cohortSignal.totalMembers} constituents.`}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ padding: "32px 8px", textAlign: "center", color: "var(--slate-500)", fontSize: "0.75rem" }}>
-                    <div style={{ color: "var(--slate-400)", marginBottom: "6px" }}><IconInfoCircle size={22} /></div>
-                    {isId
-                      ? "Arahkan kursor ke titik sektor pada matriks untuk melihat rincian sinyal."
-                      : "Hover over any cohort node on the matrix to inspect its real-time telemetry."}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ paddingTop: "12px", borderTop: "1px solid var(--border-light)" }}>
-                <Link href={"/radar" as Route} className="btn btn-secondary btn-sm" style={{ width: "100%" }}>
-                  {isId ? "Buka Radar Sektor" : "Open Sector Radar"} <IconArrowRight size={12} />
-                </Link>
-              </div>
-            </div>
-          </div>
+          <SectorMatrix
+            sectors={sectors}
+            language={language}
+            getSectorDisplayName={getSectorDisplayName}
+          />
         ) : (
           /* Accessible Table Fallback (OWID Pattern) */
           <div className="table-scroll" style={{ padding: "16px" }}>
@@ -402,7 +284,7 @@ export default function OverviewPage() {
                     </td>
                     <td style={{ fontSize: "0.75rem", maxWidth: "260px" }}>{s.dominantDriver}</td>
                     <td style={{ textAlign: "right" }}>
-                      <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
+                      <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-secondary btn-sm">
                         {isId ? "Periksa →" : "Inspect →"}
                       </Link>
                     </td>
@@ -515,7 +397,7 @@ export default function OverviewPage() {
                       {s.counterSignalSummary}
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
+                      <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-secondary btn-sm">
                         {isId ? "Rincian" : "Deep Dive"} <IconArrowRight size={12} />
                       </Link>
                     </td>
@@ -543,29 +425,26 @@ export default function OverviewPage() {
                 {isId ? "Lihat Semua" : "View All"} <IconArrowRight size={12} />
               </Link>
             </div>
-            <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderLeft: "3px solid var(--risk-600)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>
-                  {isId ? "Energi — Pertambangan Batubara" : "Energy — Coal Mining & Quarrying"}
-                </strong>
-                <span className="badge badge-risk">{isId ? "Tekanan" : "Pressure"}</span>
+            {latestInvestigation ? (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderLeft: "3px solid var(--risk-600)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>{latestInvestigation.brief?.cohortId ?? "—"}</strong>
+                  <span className={`badge ${latestInvestigation.status === "completed" ? "badge-opportunity" : "badge-neutral"}`}>{latestInvestigation.status.toUpperCase()}</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
+                  &quot;{latestInvestigation.brief?.investigationQuestions?.[0] ?? "—"}&quot;
+                </div>
+                <div style={{ marginTop: "8px" }}>
+                  <Link href={`/investigations/${latestInvestigation.id}` as Route} style={{ fontSize: "0.75rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    {isId ? "Buka Ruang Investigasi" : "Open Investigation Workspace"} <IconArrowRight size={12} />
+                  </Link>
+                </div>
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
-                {isId
-                  ? "“Apakah kontraksi margin laba batubara termal terjadi merata di emiten menengah?”"
-                  : "“Is thermal coal margin compression shared broadly across mid-caps?”"}
+            ) : (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--slate-500)" }}>
+                {isId ? "Belum ada investigasi live. Jalankan investigasi dari radar." : "No live investigations yet. Start one from the radar."}
               </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", marginTop: "6px", display: "flex", gap: "10px" }}>
-                <span>{isId ? "Selesai" : "Completed"}</span>
-                <span>{isId ? "6 Panggilan Alat" : "6 Tool Runs"}</span>
-                <span>Ollama Qwen2.5-7B</span>
-              </div>
-              <div style={{ marginTop: "8px" }}>
-                <Link href={"/investigations/inv-energy-coal-demo" as Route} style={{ fontSize: "0.75rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  {isId ? "Buka Ruang Investigasi" : "Open Investigation Workspace"} <IconArrowRight size={12} />
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Decision Briefs */}
@@ -581,31 +460,26 @@ export default function OverviewPage() {
                 {isId ? "Lihat Semua" : "View All"} <IconArrowRight size={12} />
               </Link>
             </div>
-            <div style={{ padding: "12px 14px", background: "var(--primary-50)", borderLeft: "3px solid var(--primary-800)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>
-                  {isId ? "Pergeseran Sektor Batubara Q1-2026: Kontraksi Margin Ekspor" : "Q1-2026 Coal Sector Shift: Export Margin Contraction"}
-                </strong>
-                <span className="badge badge-snapshot">v1.0 Final</span>
+            {latestBrief ? (
+              <div style={{ padding: "12px 14px", background: "var(--primary-50)", borderLeft: "3px solid var(--primary-800)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>{latestBrief.title}</strong>
+                  <span className="badge badge-snapshot">v{latestBrief.current_version}.0</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
+                  {isId ? "Kohort: " : "Cohort: "}<strong>{latestBrief.cohort_id}</strong>
+                </div>
+                <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                  <Link href={`/briefs/${latestBrief.id}` as Route} className="btn btn-primary btn-sm">
+                    {isId ? "Baca Laporan" : "Read Brief"} <IconArrowRight size={12} />
+                  </Link>
+                </div>
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
-                {isId
-                  ? "Laporan keputusan resmi dengan 15 sitasi terverifikasi, register bukti sanggahan, dan konteks makroekonomi BPS."
-                  : "Official decision brief with 15 verified citations, counterevidence register, and BPS macroeconomic context."}
+            ) : (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--slate-500)" }}>
+                {isId ? "Belum ada brief live." : "No live briefs yet."}
               </div>
-              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                <Link href={"/briefs/brief-energy-coal-q1-2026" as Route} className="btn btn-primary btn-sm">
-                  {isId ? "Baca Laporan" : "Read Brief"} <IconArrowRight size={12} />
-                </Link>
-                <a
-                  href="/api/briefs/brief-energy-coal-q1-2026/export"
-                  download="brief-energy-coal-q1-2026.md"
-                  className="btn btn-secondary btn-sm"
-                >
-                  {isId ? "Ekspor .md" : "Export .md"}
-                </a>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

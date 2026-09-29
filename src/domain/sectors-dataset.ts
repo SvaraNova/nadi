@@ -1,5 +1,5 @@
-import { calculateSignalRun, type SignalInput, type SignalRun } from "./signal-run";
 import { type CohortSignal } from "./signals";
+import type { SignalRun } from "./signal-run";
 
 export interface SectorDefinition {
   id: string;
@@ -258,50 +258,4 @@ export interface SectorSignalSummary {
   cohortSignal: CohortSignal;
   dominantDriver: string;
   counterSignalSummary: string;
-}
-
-export function buildSectorSignalRuns(datasetId = "synthetic-dataset-v0.1", period = "2026-03-31"): SectorSignalSummary[] {
-  return SECTOR_DEFINITIONS.map((sector) => {
-    const inputs: SignalInput[] = sector.companies.map((c) => ({
-      companyId: c.symbol,
-      priorObservationIds: [`obs-prior-${c.symbol}-revenue`, `obs-prior-${c.symbol}-pnl`, `obs-prior-${c.symbol}-ocf`, `obs-prior-${c.symbol}-debt`, `obs-prior-${c.symbol}-assets`],
-      currentObservationIds: [`obs-curr-${c.symbol}-revenue`, `obs-curr-${c.symbol}-pnl`, `obs-curr-${c.symbol}-ocf`, `obs-curr-${c.symbol}-debt`, `obs-curr-${c.symbol}-assets`],
-      prior: c.prior,
-      current: c.current,
-    }));
-
-    const signalRun = calculateSignalRun(datasetId, inputs, sector.totalUniverse, true);
-    const cohort = signalRun.cohortSignal;
-
-    let dominantDriver = "Balanced performance across indicators";
-    let counterSignalSummary = "None identified";
-
-    if (cohort.label === "risk") {
-      dominantDriver = "Gross revenue contraction and operating margin deterioration";
-      counterSignalSummary = `${signalRun.inputs.length - (cohort.eligibleCount * Number(cohort.riskBreadth || 0))} companies maintained revenue growth (e.g. BUMI.JK)`;
-    } else if (cohort.label === "opportunity") {
-      dominantDriver = "Broad revenue expansion and operating cash-flow improvement";
-      counterSignalSummary = "All eligible constituents supported margin expansion";
-    } else if (cohort.label === "mixed") {
-      dominantDriver = "Revenue grew while operating margins compressed across producers";
-      counterSignalSummary = "Topline growth contradicted bottom-line margin squeeze";
-    } else if (cohort.label === "insufficient_data") {
-      dominantDriver = "Sample size below method minimum threshold (< 5 eligible entities)";
-      counterSignalSummary = "Coverage constraint prevents reliable cohort inference";
-    }
-
-    return {
-      id: sector.id,
-      name: sector.name,
-      industry: sector.industry,
-      description: sector.description,
-      runId: `run-${sector.id}-${period}`,
-      datasetId,
-      period: "Q1-2026 (ended 2026-03-31)",
-      signalRun,
-      cohortSignal: cohort,
-      dominantDriver,
-      counterSignalSummary,
-    };
-  });
 }

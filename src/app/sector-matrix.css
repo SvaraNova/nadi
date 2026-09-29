@@ -1,0 +1,389 @@
+.sector-matrix-wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--border-light);
+}
+
+.matrix-board {
+  padding: 16px 20px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.matrix-board-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.matrix-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: var(--slate-100);
+  color: var(--slate-700);
+  border: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-pressure .legend-dot { background: var(--risk-600); }
+.legend-opportunity .legend-dot { background: var(--opp-600); }
+.legend-mixed .legend-dot { background: var(--mixed-600); }
+.legend-neutral .legend-dot { background: var(--slate-400); }
+
+.matrix-board-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--slate-600);
+}
+
+/* Grid Kartu: Auto-fit fluid dengan min-width fleksibel yang tidak akan terpotong */
+.matrix-sectors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.sector-card-btn {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+  position: relative;
+  font-family: inherit;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+}
+
+.sector-card-btn:hover {
+  border-color: var(--slate-300);
+  background: var(--slate-50);
+  transform: translateY(-1px);
+}
+
+.sector-card-btn.selected {
+  border-color: var(--primary-600);
+  background: var(--primary-50);
+  box-shadow: 0 0 0 2px var(--primary-200);
+}
+
+.sector-card-btn.status-risk { border-left: 4px solid var(--risk-600); }
+.sector-card-btn.status-opp { border-left: 4px solid var(--opp-600); }
+.sector-card-btn.status-mixed { border-left: 4px solid var(--mixed-600); }
+.sector-card-btn.status-neutral { border-left: 4px solid var(--slate-400); }
+.sector-card-btn.status-pending { border-left: 4px solid var(--warn-600); }
+
+/* Bagian Atas Kartu: Flex Wrap agar badge tidak menabrak / terpotong */
+.sector-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sector-card-name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--slate-950);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.sector-card-badge-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.sector-card-badge-row .badge {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.625rem;
+  padding: 2px 7px;
+}
+
+.sector-card-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.score-mini-bar {
+  display: grid;
+  grid-template-columns: 44px 1fr 30px;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+}
+
+.bar-label {
+  color: var(--slate-500);
+  font-weight: 600;
+}
+
+.bar-track {
+  height: 6px;
+  background: var(--slate-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.bar-fill.bar-risk { background: var(--risk-600); }
+.bar-fill.bar-opp { background: var(--opp-600); }
+
+.bar-val {
+  color: var(--slate-800);
+  font-weight: 700;
+  text-align: right;
+  font-size: 0.6875rem;
+}
+
+.sector-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6875rem;
+  padding-top: 4px;
+  gap: 8px;
+}
+
+.sector-status-pill {
+  font-weight: 700;
+  color: var(--slate-700);
+  line-height: 1.2;
+}
+
+.sector-sample-count {
+  color: var(--slate-500);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Kolom Kanan */
+.matrix-detail-pane {
+  background: var(--slate-50);
+  border-left: 1px solid var(--border-light);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.pane-header {
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 12px;
+}
+
+.pane-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--primary-700);
+  text-transform: uppercase;
+}
+
+.pane-title {
+  margin: 4px 0 2px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--slate-950);
+}
+
+.pane-industry {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+}
+
+.pane-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.score-gauge-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gauge-item {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid transparent;
+}
+
+.gauge-item.gauge-risk {
+  background: var(--risk-50);
+  border-color: var(--risk-border);
+}
+
+.gauge-item.gauge-opp {
+  background: var(--opp-50);
+  border-color: var(--opp-border);
+}
+
+.gauge-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gauge-risk .gauge-title { color: var(--risk-800); }
+.gauge-opp .gauge-title { color: var(--opp-800); }
+
+.gauge-number {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.gauge-risk .gauge-number { color: var(--risk-700); }
+.gauge-opp .gauge-number { color: var(--opp-700); }
+
+.gauge-desc {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.gauge-risk .gauge-desc { color: var(--risk-700); }
+.gauge-opp .gauge-desc { color: var(--opp-700); }
+
+.pane-fact-box {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.pane-fact-box strong {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--slate-950);
+  margin-bottom: 4px;
+}
+
+.pane-fact-box p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-700);
+  line-height: 1.45;
+}
+
+.pane-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 4px 0;
+}
+
+.pane-meta-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pane-meta-list span { color: var(--slate-500); }
+.pane-meta-list strong { color: var(--slate-800); }
+
+.pane-action-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.8125rem;
+  padding: 9px 14px;
+}
+
+.pane-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--slate-500);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsiveness Bertingkat */
+@media (max-width: 1200px) {
+  .sector-matrix-wrapper {
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
+  }
+  .matrix-sectors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .sector-matrix-wrapper {
+    grid-template-columns: 1fr;
+  }
+  .matrix-detail-pane {
+    border-left: 0;
+    border-top: 1px solid var(--border-light);
+  }
+  .matrix-sectors-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .matrix-board {
+    padding: 12px;
+  }
+  .matrix-sectors-grid {
+    grid-template-columns: 1fr;
+  }
+  .score-gauge-box {
+    grid-template-columns: 1fr;
+  }
+  .matrix-detail-pane {
+    padding: 16px;
+  }
+}

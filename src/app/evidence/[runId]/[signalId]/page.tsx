@@ -10,23 +10,52 @@ export default async function PersistedEvidence({ params }: { params: Promise<{ 
   if (!process.env.DATABASE_URL) return <main><h1>Evidence unavailable</h1><p>The database connection is not configured.</p></main>;
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 5000 });
   let evidence, comparison;
-  try { evidence = await readEvidence(pool, runId, signalId); comparison = evidence ? await readPublicComparison(pool, "energy-coal", evidence.run.config_json?.target ?? "") : null; }
-  finally { await pool.end(); }
+  let databaseError = false;
+  try {
+    evidence = await readEvidence(pool, runId, signalId);
+    comparison = evidence ? await readPublicComparison(pool, "energy-coal", evidence.run.config_json?.target ?? "") : null;
+  } catch (error) {
+    databaseError = true;
+    console.error("Evidence database unavailable", error);
+  } finally {
+    await pool.end();
+  }
+  if (databaseError) {
+    return (
+      <main className="evidence">
+        <Link href={`/radar?run=${runId}`}>Back to stored radar</Link>
+        <p className="eyebrow">STORED EVIDENCE</p>
+        <h1>Evidence temporarily unavailable</h1>
+        <p>The database connection timed out while loading this evidence record. The stored signal was not changed.</p>
+        <p>Retry after the database is available.</p>
+      </main>
+    );
+  }
   if (!evidence) notFound();
   const { run, company, rows } = evidence;
   return <main className="evidence">
     <Link href={`/radar?run=${runId}`}>Back to stored radar</Link>
-    <p className="eyebrow">{run.mode === "synthetic" ? "SYNTHETIC DEMO" : run.mode.toUpperCase()} · STORED EVIDENCE</p>
+    <p className="eyebrow">{run.mode.toUpperCase()} · STORED EVIDENCE</p>
     <h1>{company.symbol}</h1>
-    <p>Run <code>{run.id}</code> · dataset <code>{run.dataset_id}</code> · method {run.method_version}</p>
-    <p>Target {run.config_json?.target ?? "Unknown"} · prior {run.config_json?.prior ?? "Unknown"} · retrieval cutoff {run.data_cutoff ?? "Unknown"}</p>
-    <p>Persistence across adjacent periods: {run.config_json?.persistence ?? "unavailable"}. Scores describe this company, not national conditions or crisis probability.</p>
-    <h2>Stored result</h2><p>Risk: {company.result.riskScore ?? "Unavailable"} · Opportunity: {company.result.opportunityScore ?? "Unavailable"}</p>
-    <ul>{company.result.exclusionReasons.map(reason => <li key={reason}>{reason.replaceAll("_", " ")}</li>)}</ul>
-    <dl>{Object.entries(company.result.features ?? {}).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value} {key === "revenueGrowth" ? "%" : "percentage points"}</dd></div>)}</dl>
-    <h2>Calculation inputs and sources</h2><p>Revenue growth = 100 × (current − prior) / |prior|. Margin changes = 100 × (current metric / current revenue − prior metric / prior revenue). Debt/assets change = 100 × (current debt / current assets − prior debt / prior assets).</p>
-    <div className="table-scroll" role="region" aria-label="Stored observations" tabIndex={0}><table><caption>Exact decimal inputs; unknown values remain unknown</caption><thead><tr><th scope="col">Period</th><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Quality</th><th scope="col">Source</th></tr></thead><tbody>{rows.map(row => <tr key={`${row.role}-${row.id}`}><td>{row.role} · {row.period}</td><th scope="row">{row.metric}</th><td>{row.value ?? "Unknown"} {row.currency} ({row.unit ?? "unknown unit"})</td><td>{row.quality_status}</td><td><a href={`#observation-${row.id}`}>Inspect source</a></td></tr>)}</tbody></table></div>
-    {rows.map(row => <section id={`observation-${row.id}`} key={`${row.role}-${row.id}`}><h3>{row.metric} · {row.period}</h3><p>Observation {row.id} · revision {row.revision}. Period start {row.start ?? "Not applicable/unknown"}; basis {row.basis}.</p><p>Snapshot {row.source_snapshot_id} · pointer <code>{row.source_pointer}</code> · provider {row.provider}</p><p>Retrieved {row.retrieved_at} · published/available {row.available_at ?? "Unknown"}</p><p>SHA-256 <code>{row.payload_hash}</code></p>{publicSourceUrl(row.source_url) ? <a href={publicSourceUrl(row.source_url)!} rel="noreferrer">Source reference</a> : <p>Source link unavailable</p>}</section>)}
-    <section><h2>Public comparison</h2>{comparison ? <><p><strong>{comparison.status.replaceAll("_", " ")}</strong></p><p>{comparison.indicator.name} · {comparison.indicator.geography} · {comparison.indicator.period_start} to {comparison.indicator.period_end} · value {comparison.indicator.value ?? "Unknown"} {comparison.indicator.unit}</p><p>{comparison.indicator.definition} Publisher: {comparison.indicator.publisher}. Published {comparison.indicator.published_at}; retrieved {comparison.indicator.retrieved_at}.</p><p>{comparison.mapping.rationale}</p>{publicSourceUrl(comparison.indicator.source_url) && <a href={comparison.indicator.source_url} rel="noreferrer">Official source</a>}</> : <><p><strong>not comparable</strong></p><p>No indicator record is available for this run period. Corporate revenue cannot be equated to real output or employment.</p></>}</section>
+    <div className="evidence-summary">
+      <div><span>Periode analisis</span><strong>{run.config_json?.target ?? "Tidak diketahui"}</strong></div>
+      <div><span>Periode pembanding</span><strong>{run.config_json?.prior ?? "Tidak diketahui"}</strong></div>
+      <div><span>Data diambil</span><strong>{run.data_cutoff ?? "Tidak diketahui"}</strong></div>
+    </div>
+    <p>Skor ini menjelaskan perubahan fundamental perusahaan, bukan kondisi ekonomi nasional atau prediksi krisis.</p>
+    <h2>Ringkasan hasil</h2>
+    <div className="evidence-result">
+      <div><span>Risiko</span><strong>{company.result.riskScore ?? "Tidak tersedia"}</strong></div>
+      <div><span>Peluang</span><strong>{company.result.opportunityScore ?? "Tidak tersedia"}</strong></div>
+    </div>
+    {company.result.exclusionReasons.length > 0 && <ul>{company.result.exclusionReasons.map(reason => <li key={reason}>{reason.replaceAll("_", " ")}</li>)}</ul>}
+    <dl>{Object.entries(company.result.features ?? {}).map(([key, value]) => <div key={key}><dt>{key.replaceAll(/([A-Z])/g, " $1").replace(/^./, letter => letter.toUpperCase())}</dt><dd>{value} {key === "revenueGrowth" ? "%" : "poin persentase"}</dd></div>)}</dl>
+    <h2>Bukti perhitungan</h2>
+    <p>Pendapatan, laba operasi, arus kas, utang, dan aset dibandingkan antara periode analisis dan periode pembanding. Nilai asli dan sumbernya tersedia di bawah.</p>
+    <div className="table-scroll" role="region" aria-label="Stored observations" tabIndex={0}><table><caption>Nilai laporan yang dipakai untuk menghitung skor</caption><thead><tr><th scope="col">Periode</th><th scope="col">Metrik</th><th scope="col">Nilai</th><th scope="col">Kualitas</th><th scope="col">Detail</th></tr></thead><tbody>{rows.map(row => <tr key={`${row.role}-${row.id}`}><td>{row.role === "current" ? "Analisis" : "Pembanding"} · {row.period}</td><th scope="row">{row.metric.replaceAll("_", " ")}</th><td>{row.value ?? "Tidak diketahui"} {row.currency ?? ""} ({row.unit ?? "satuan tidak diketahui"})</td><td>{row.quality_status}</td><td><a href={`#observation-${row.id}`}>Lihat sumber</a></td></tr>)}</tbody></table></div>
+    <h2>Detail sumber data</h2>
+    <p>Bagian ini berisi informasi audit untuk memverifikasi asal setiap angka. Buka detail bila diperlukan.</p>
+    {rows.map(row => <section id={`observation-${row.id}`} key={`${row.role}-${row.id}`}><h3>{row.metric.replaceAll("_", " ")} · {row.period}</h3><p><strong>Sumber:</strong> {row.provider} · diambil {row.retrieved_at}</p><p><strong>Basis laporan:</strong> {row.basis} · periode mulai {row.start ?? "tidak tersedia"} · status {row.quality_status}</p><details><summary>Lihat detail teknis provenance</summary><p>ID observasi: <code>{row.id}</code> · revisi {row.revision}</p><p>ID snapshot: <code>{row.source_snapshot_id}</code> · lokasi data: <code>{row.source_pointer}</code></p><p>SHA-256: <code>{row.payload_hash}</code></p></details>{row.provider === "sectors" ? <p className="evidence-source-note">Sumber provider memerlukan autentikasi dan tidak dibuka langsung dari browser.</p> : publicSourceUrl(row.source_url) ? <a href={publicSourceUrl(row.source_url)!} rel="noreferrer">Buka sumber asli</a> : <p>Link sumber tidak tersedia</p>}</section>)}
+    <section><h2>Perbandingan indikator publik</h2>{comparison ? <><p><strong>{comparison.status.replaceAll("_", " ")}</strong></p><p>{comparison.indicator.name} · {comparison.indicator.geography} · {comparison.indicator.period_start} sampai {comparison.indicator.period_end} · nilai {comparison.indicator.value ?? "tidak diketahui"} {comparison.indicator.unit}</p><p>{comparison.indicator.definition} Penerbit: {comparison.indicator.publisher}. Diterbitkan {comparison.indicator.published_at}; diambil {comparison.indicator.retrieved_at}.</p><p>{comparison.mapping.rationale}</p>{publicSourceUrl(comparison.indicator.source_url) && <a href={comparison.indicator.source_url} rel="noreferrer">Buka sumber resmi</a>}</> : <><p><strong>Tidak dapat dibandingkan</strong></p><p>Tidak ada indikator untuk periode ini. Pendapatan perusahaan tidak dapat disamakan langsung dengan output atau tingkat pekerjaan nasional.</p></>}</section>
   </main>;
 }

@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
 import { IconCopy, IconCheck } from "../../components/ui/Icons";
 import { SECTOR_DEFINITIONS } from "../../domain/sectors-dataset";
 import { useLanguage } from "../../lib/i18n";
 
-type TabKey = "sources" | "datasets" | "coverage" | "public_indicators" | "methodology";
+type TabKey = "sources" | "datasets" | "coverage" | "public_indicators" | "methodology" | "glossary";
+
+interface LiveDatasetRow { id: string; manifest_hash: string; data_cutoff: string | null; created_at: string; observation_count: number }
+interface LiveSectorRow { id: string; name: string; industry: string; cohortSignal: { eligibleCount: number; totalMembers: number; label: string } }
+interface LiveIndicatorRow { name: string; definition: string; source_url: string; publisher: string; value: string | null; unit: string; geography: string; period_start: string; period_end: string; published_at: string; retrieved_at: string; cohort_key: string; relation: string; rationale: string; reviewer: string | null; reviewed_at: string | null }
 
 export default function DataAndMethodPage() {
   const { language } = useLanguage();
@@ -16,10 +20,21 @@ export default function DataAndMethodPage() {
   const [coverageSearch, setCoverageSearch] = useState("");
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
-  // Flatten all tracked constituents
+  const [datasets, setDatasets] = useState<LiveDatasetRow[]>([]);
+  const [liveSectors, setLiveSectors] = useState<LiveSectorRow[]>([]);
+  const [indicators, setIndicators] = useState<LiveIndicatorRow[]>([]);
+  useEffect(() => {
+    void fetch("/api/v1/datasets/live").then((r) => r.ok ? r.json() : null).then((p) => setDatasets(p?.datasets ?? [])).catch(() => setDatasets([]));
+    void fetch("/api/signal-runs/live").then((r) => r.ok ? r.json() : null).then((p) => setLiveSectors(p?.sectors ?? [])).catch(() => setLiveSectors([]));
+    void fetch("/api/v1/public-indicators/live").then((r) => r.ok ? r.json() : null).then((p) => setIndicators(p?.indicators ?? [])).catch(() => setIndicators([]));
+  }, []);
+
+  // Static taxonomy reference: tracked sector/company universe, not a live financial claim.
   const allCompanies = SECTOR_DEFINITIONS.flatMap((s) =>
     s.companies.map((c) => ({
-      ...c,
+      symbol: c.symbol,
+      name: c.name,
+      marketCapCategory: c.marketCapCategory,
       cohortName: s.name,
       cohortId: s.id,
       industry: s.industry,
@@ -45,15 +60,16 @@ export default function DataAndMethodPage() {
   };
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "sources", label: isId ? "1. Sumber & Aliran Data" : "1. Data Sources & Feeds" },
-    { key: "datasets", label: isId ? "2. Putaran Dataset & Hash" : "2. Dataset Runs & Hashes" },
-    { key: "coverage", label: isId ? "3. Alam Semesta & Cakupan" : "3. Universe & Coverage" },
-    { key: "public_indicators", label: isId ? "4. Konteks Makro Publik" : "4. Public Macro Context" },
-    { key: "methodology", label: isId ? "5. Spesifikasi Matematika Metode v0.1" : "5. Method v0.1 Math Spec" },
+    { key: "sources", label: isId ? "Sumber" : "Sources" },
+    { key: "datasets", label: isId ? "Dataset" : "Datasets" },
+    { key: "coverage", label: isId ? "Cakupan" : "Coverage" },
+    { key: "public_indicators", label: isId ? "Indikator Publik" : "Public Indicators" },
+    { key: "methodology", label: isId ? "Metodologi" : "Methodology" },
+    { key: "glossary", label: isId ? "Glosarium" : "Glossary" },
   ];
 
   return (
-    <AppShell dataMode="synthetic">
+    <AppShell dataMode="live">
       <div className="page-header">
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
           <span className="badge badge-snapshot">
@@ -66,9 +82,14 @@ export default function DataAndMethodPage() {
         <h1>{isId ? "Ruang Kerja Transparansi Data & Metodologi" : "Data & Methodology Transparency Workspace"}</h1>
         <p className="page-subtitle">
           {isId
-            ? "Audit asal data (provenance), putaran dataset historis, metrik cakupan kohort, pemetaan statistik publik, dan formula deterministik."
-            : "Audit ingestion provenance, historical dataset runs, cohort coverage metrics, public statistical mappings, and deterministic formulas."}
+            ? "Audit asal data (provenance), putaran dataset live, metrik cakupan kohort, pemetaan statistik publik, dan formula deterministik."
+            : "Audit ingestion provenance, live dataset runs, cohort coverage metrics, public statistical mappings, and deterministic formulas."}
         </p>
+      <div className="flow-guide">
+        <strong>{isId ? "Status implementasi saat ini" : "Current implementation status"}</strong>
+        <span>{isId ? "Dataset, cakupan kohort, dan indikator publik pada halaman ini dibaca langsung dari PostgreSQL." : "Datasets, cohort coverage, and public indicators on this page are read directly from PostgreSQL."}</span>
+        <small>{isId ? "Direktori emiten di bawah adalah taksonomi statis yang menandai sektor yang dipantau, bukan klaim data live." : "The constituent directory below is a static taxonomy marking tracked sectors, not a live data claim."}</small>
+      </div>
       </div>
 
       {/* Segmented Control Navigation */}
@@ -118,22 +139,14 @@ export default function DataAndMethodPage() {
                 <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
                   {isId ? "Mode Data" : "Data Mode"}
                 </div>
-                <div style={{ marginTop: "2px" }}><DataModeBadge mode="synthetic" size="sm" /></div>
+                <div style={{ marginTop: "2px" }}><DataModeBadge mode="live" size="sm" /></div>
               </div>
               <div>
                 <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
-                  {isId ? "Populasi Emiten" : "Constituent Universe"}
+                  {isId ? "Dataset Live Tersimpan" : "Persisted Live Datasets"}
                 </div>
                 <div style={{ fontWeight: 700, marginTop: "2px" }}>
-                  {isId ? "31 Entitas Tercatat di Indonesia" : "31 Listed Indonesian Entities"}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
-                  {isId ? "Status Kuota API" : "API Quota State"}
-                </div>
-                <div style={{ fontWeight: 700, color: "var(--opp-700)", marginTop: "2px" }}>
-                  {isId ? "Sisa 41 / Batas 50" : "41 Remaining / 50 Cap"}
+                  {datasets.length}
                 </div>
               </div>
             </div>
@@ -159,93 +172,53 @@ export default function DataAndMethodPage() {
           </h2>
           <p style={{ fontSize: "0.8125rem", color: "var(--slate-600)", margin: "0 0 16px" }}>
             {isId
-              ? "Setiap perhitungan sinyal terikat pada snapshot dataset yang tidak dapat diubah dengan verifikasi integritas kriptografis."
-              : "Every signal calculation is bound to an immutable dataset snapshot with cryptographic integrity verification."}
+              ? "Setiap perhitungan sinyal terikat pada snapshot dataset live yang tidak dapat diubah dengan verifikasi integritas kriptografis."
+              : "Every signal calculation is bound to an immutable live dataset snapshot with cryptographic integrity verification."}
           </p>
 
+          {datasets.length === 0 ? (
+            <div style={{ padding: "24px", textAlign: "center", color: "var(--slate-500)" }}>
+              {isId ? "Belum ada dataset live tersimpan." : "No live datasets persisted yet."}
+            </div>
+          ) : (
           <div className="table-container" style={{ margin: 0 }}>
             <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
                     <th scope="col">{isId ? "ID Dataset" : "Dataset ID"}</th>
-                    <th scope="col">{isId ? "Status" : "Status"}</th>
-                    <th scope="col">{isId ? "Snapshot Sumber / Hash SHA-256" : "Source Snapshot / SHA-256 Hash"}</th>
-                    <th scope="col">{isId ? "Observasi Valid" : "Valid Observations"}</th>
-                    <th scope="col">{isId ? "Ditolak" : "Rejected"}</th>
-                    <th scope="col">{isId ? "Waktu" : "Timestamp"}</th>
+                    <th scope="col">{isId ? "Hash SHA-256" : "SHA-256 Hash"}</th>
+                    <th scope="col">{isId ? "Observasi" : "Observations"}</th>
+                    <th scope="col">{isId ? "Batas Data" : "Data Cutoff"}</th>
+                    <th scope="col">{isId ? "Dibuat" : "Created"}</th>
                     <th scope="col">{isId ? "Tindakan" : "Action"}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td><code>synthetic-dataset-v0.1</code></td>
-                    <td>
-                      <span className="badge badge-opportunity btn-sm">
-                        {isId ? "SELESAI" : "COMPLETED"}
-                      </span>
-                    </td>
-                    <td>
-                      <code style={{ fontSize: "0.75rem" }}>e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</code>
-                    </td>
-                    <td className="tabular-nums">{isId ? "60 baris" : "60 rows"}</td>
-                    <td className="tabular-nums">{isId ? "0 ditolak" : "0 rejected"}</td>
-                    <td className="tabular-nums">2026-09-15 08:00 WIB</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleCopy("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "ds1")}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-                      >
-                        {copiedHash === "ds1" ? (
-                          <>
-                            <IconCheck size={12} /> {isId ? "Tersalin" : "Copied"}
-                          </>
-                        ) : (
-                          <>
-                            <IconCopy size={12} /> {isId ? "Salin Hash" : "Copy Hash"}
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><code>dataset-energy-coal-demo</code></td>
-                    <td>
-                      <span className="badge badge-opportunity btn-sm">
-                        {isId ? "SELESAI" : "COMPLETED"}
-                      </span>
-                    </td>
-                    <td>
-                      <code style={{ fontSize: "0.75rem" }}>a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0</code>
-                    </td>
-                    <td className="tabular-nums">{isId ? "60 baris" : "60 rows"}</td>
-                    <td className="tabular-nums">{isId ? "0 ditolak" : "0 rejected"}</td>
-                    <td className="tabular-nums">2026-09-14 18:30 WIB</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleCopy("a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0", "ds2")}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-                      >
-                        {copiedHash === "ds2" ? (
-                          <>
-                            <IconCheck size={12} /> {isId ? "Tersalin" : "Copied"}
-                          </>
-                        ) : (
-                          <>
-                            <IconCopy size={12} /> {isId ? "Salin Hash" : "Copy Hash"}
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
+                  {datasets.map((d) => (
+                    <tr key={d.id}>
+                      <td><code style={{ fontSize: "0.75rem" }}>{d.id}</code></td>
+                      <td><code style={{ fontSize: "0.75rem" }}>{d.manifest_hash.slice(0, 16)}…</code></td>
+                      <td className="tabular-nums">{d.observation_count}</td>
+                      <td className="tabular-nums">{d.data_cutoff ?? "—"}</td>
+                      <td className="tabular-nums">{new Date(d.created_at).toLocaleString(isId ? "id-ID" : "en-US")}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleCopy(d.manifest_hash, d.id)}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                        >
+                          {copiedHash === d.id ? (<><IconCheck size={12} /> {isId ? "Tersalin" : "Copied"}</>) : (<><IconCopy size={12} /> {isId ? "Salin hash" : "Copy hash"}</>)}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
+          )}
         </div>
       )}
 
@@ -256,9 +229,14 @@ export default function DataAndMethodPage() {
           <div className="card">
             <div className="card-eyebrow">{isId ? "Kelengkapan Sampel" : "Sample Completeness"}</div>
             <h2 style={{ margin: "0 0 14px", fontSize: "1.15rem" }}>
-              {isId ? "Cakupan Kohort & Aturan Dasar Akuntansi" : "Cohort Coverage & Accounting Basis Rules"}
+              {isId ? "Cakupan Kohort Live" : "Live Cohort Coverage"}
             </h2>
 
+            {liveSectors.length === 0 ? (
+              <div style={{ padding: "24px", textAlign: "center", color: "var(--slate-500)" }}>
+                {isId ? "Belum ada kohort live tersedia." : "No live cohorts available yet."}
+              </div>
+            ) : (
             <div className="table-container" style={{ margin: 0 }}>
               <table>
                 <thead>
@@ -267,63 +245,37 @@ export default function DataAndMethodPage() {
                     <th scope="col">{isId ? "Total Populasi" : "Total Universe"}</th>
                     <th scope="col">{isId ? "Entitas Memenuhi Syarat" : "Eligible Entities"}</th>
                     <th scope="col">{isId ? "% Cakupan" : "Coverage %"}</th>
-                    <th scope="col">{isId ? "Dasar Akuntansi" : "Accounting Basis"}</th>
-                    <th scope="col">{isId ? "Mata Uang" : "Currency"}</th>
+                    <th scope="col">{isId ? "Hasil Sinyal" : "Signal Result"}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td><strong>{isId ? "Energi — Pertambangan Batubara" : "Energy — Coal Mining & Quarrying"}</strong></td>
-                    <td className="tabular-nums">7</td>
-                    <td className="tabular-nums">6</td>
-                    <td className="tabular-nums"><strong style={{ color: "var(--opp-700)" }}>{isId ? "85,7% (Valid)" : "85.7% (Valid)"}</strong></td>
-                    <td>{isId ? "Kuartal Mandiri" : "Standalone Quarter"}</td>
-                    <td>{isId ? "Dinormalisasi ke IDR" : "IDR Normalized"}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>{isId ? "Barang Konsumsi Pokok — Makanan & Minuman" : "Consumer Staples — Food & Beverage"}</strong></td>
-                    <td className="tabular-nums">6</td>
-                    <td className="tabular-nums">5</td>
-                    <td className="tabular-nums"><strong style={{ color: "var(--opp-700)" }}>{isId ? "83,3% (Valid)" : "83.3% (Valid)"}</strong></td>
-                    <td>{isId ? "Kuartal Mandiri" : "Standalone Quarter"}</td>
-                    <td>{isId ? "Dinormalisasi ke IDR" : "IDR Normalized"}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>{isId ? "Bahan Baku — Nikel & Mineral" : "Basic Materials — Nickel & Minerals"}</strong></td>
-                    <td className="tabular-nums">6</td>
-                    <td className="tabular-nums">5</td>
-                    <td className="tabular-nums"><strong style={{ color: "var(--opp-700)" }}>{isId ? "83,3% (Valid)" : "83.3% (Valid)"}</strong></td>
-                    <td>{isId ? "Kuartal Mandiri" : "Standalone Quarter"}</td>
-                    <td>{isId ? "Dinormalisasi ke IDR" : "IDR Normalized"}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>{isId ? "Industri — Logistik & Transportasi" : "Industrial — Logistics & Transport"}</strong></td>
-                    <td className="tabular-nums">5</td>
-                    <td className="tabular-nums">4</td>
-                    <td className="tabular-nums"><strong style={{ color: "var(--opp-700)" }}>{isId ? "80,0% (Valid)" : "80.0% (Valid)"}</strong></td>
-                    <td>{isId ? "Kuartal Mandiri" : "Standalone Quarter"}</td>
-                    <td>{isId ? "Dinormalisasi ke IDR" : "IDR Normalized"}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>{isId ? "Telekomunikasi & Infrastruktur Digital" : "Telecommunications & Digital Infra"}</strong></td>
-                    <td className="tabular-nums">7</td>
-                    <td className="tabular-nums">3</td>
-                    <td className="tabular-nums" style={{ color: "var(--risk-700)" }}>
-                      <strong>{isId ? "42,8% (Tidak Memadai)" : "42.8% (Insufficient)"}</strong>
-                    </td>
-                    <td>{isId ? "Kuartal Mandiri" : "Standalone Quarter"}</td>
-                    <td>{isId ? "Dinormalisasi ke IDR" : "IDR Normalized"}</td>
-                  </tr>
+                  {liveSectors.map((s) => {
+                    const pct = s.cohortSignal.totalMembers > 0 ? (100 * s.cohortSignal.eligibleCount / s.cohortSignal.totalMembers) : 0;
+                    return (
+                      <tr key={s.id}>
+                        <td><strong>{s.name}</strong></td>
+                        <td className="tabular-nums">{s.cohortSignal.totalMembers}</td>
+                        <td className="tabular-nums">{s.cohortSignal.eligibleCount}</td>
+                        <td className="tabular-nums">
+                          <strong style={{ color: pct >= 60 ? "var(--opp-700)" : "var(--risk-700)" }}>
+                            {pct.toFixed(1)}% {pct >= 60 ? (isId ? "(Valid)" : "(Valid)") : (isId ? "(Tidak Memadai)" : "(Insufficient)")}
+                          </strong>
+                        </td>
+                        <td>{s.cohortSignal.label.replaceAll("_", " ")}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
 
           {/* Interactive Universe Search */}
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
               <div>
-                <div className="card-eyebrow">{isId ? "Direktori Emiten" : "Constituent Directory"}</div>
+                <div className="card-eyebrow">{isId ? "Direktori Emiten (Taksonomi Statis)" : "Constituent Directory (Static Taxonomy)"}</div>
                 <h3 style={{ margin: 0, fontSize: "1rem" }}>
                   {isId
                     ? `Perusahaan Tercatat Terindeks (${filteredCompanies.length} Entitas)`
@@ -370,35 +322,34 @@ export default function DataAndMethodPage() {
 
       {/* Tab 4: Public Macro Context */}
       {activeTab === "public_indicators" && (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-            <div>
-              <div className="card-eyebrow">{isId ? "Deret Statistik Resmi" : "Official Statistical Series"}</div>
-              <h2 style={{ margin: "0 0 4px", fontSize: "1.15rem" }}>
-                {isId ? "Pertumbuhan PDB Kuartalan — Pertambangan & Penggalian" : "Quarterly GDP growth — Mining and Quarrying"}
-              </h2>
-              <div style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>
-                {isId ? "Penerbit: Badan Pusat Statistik (BPS)" : "Publisher: Badan Pusat Statistik (BPS - Statistics Indonesia)"}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {indicators.length === 0 ? (
+            <div className="card" style={{ padding: "24px", textAlign: "center", color: "var(--slate-500)" }}>
+              {isId ? "Belum ada indikator publik tersimpan." : "No public indicators persisted yet."}
+            </div>
+          ) : indicators.map((ind) => (
+            <div className="card" key={`${ind.source_url}-${ind.period_end}`}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                <div>
+                  <div className="card-eyebrow">{isId ? "Deret Statistik Resmi" : "Official Statistical Series"}</div>
+                  <h2 style={{ margin: "0 0 4px", fontSize: "1.15rem" }}>{ind.name}</h2>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--slate-500)" }}>{isId ? "Penerbit: " : "Publisher: "}{ind.publisher}</div>
+                </div>
+                <span className={`badge ${ind.relation === "not_comparable" || !ind.reviewer ? "badge-insufficient" : "badge-live"}`}>
+                  {isId ? "Telaah: " : "Review: "}{ind.reviewer ? ind.relation.replaceAll("_", " ") : (isId ? "Tidak Dapat Dibandingkan Langsung" : "Not Comparable")}
+                </span>
+              </div>
+              <div style={{ background: "var(--slate-50)", padding: "16px", borderRadius: "var(--radius-md)", fontSize: "0.875rem", lineHeight: 1.6, marginBottom: "16px", border: "1px solid var(--border-light)" }}>
+                <div><strong>{isId ? "Wilayah:" : "Geography:"}</strong> {ind.geography}</div>
+                <div><strong>{isId ? "Nilai Dilaporkan:" : "Reported Value:"}</strong> <span className="tabular-nums" style={{ fontWeight: 700 }}>{ind.value ?? "—"} {ind.unit}</span></div>
+                <div><strong>{isId ? "Periode:" : "Period:"}</strong> {ind.period_start} – {ind.period_end} ({isId ? "Dipublikasikan " : "Published "}{ind.published_at})</div>
+                {ind.reviewer && <div><strong>{isId ? "Penelaah Ahli:" : "Human Reviewer:"}</strong> {ind.reviewer} ({ind.reviewed_at})</div>}
+              </div>
+              <div style={{ fontSize: "0.875rem", color: "var(--slate-700)", lineHeight: 1.6 }}>
+                <strong>{isId ? "Kohort: " : "Cohort: "}</strong>{ind.cohort_key} · {ind.rationale}
               </div>
             </div>
-            <span className="badge badge-insufficient">
-              {isId ? "Telaah: Tidak Dapat Dibandingkan Langsung" : "Review: Not Comparable"}
-            </span>
-          </div>
-
-          <div style={{ background: "var(--slate-50)", padding: "16px", borderRadius: "var(--radius-md)", fontSize: "0.875rem", lineHeight: 1.6, marginBottom: "16px", border: "1px solid var(--border-light)" }}>
-            <div><strong>{isId ? "Wilayah:" : "Geography:"}</strong> {isId ? "Nasional (Republik Indonesia)" : "National (Republic of Indonesia)"}</div>
-            <div><strong>{isId ? "Nilai QoQ yang Dilaporkan:" : "Reported QoQ Value:"}</strong> <span className="tabular-nums" style={{ color: "var(--risk-700)", fontWeight: 700 }}>{isId ? "-8,20%" : "-8.20%"}</span></div>
-            <div><strong>{isId ? "Siklus Observasi:" : "Observation Cycle:"}</strong> {isId ? "Q1-2026 (Dipublikasikan Mei 2026)" : "Q1-2026 (Published May 2026)"}</div>
-            <div><strong>{isId ? "Penelaah Ahli:" : "Human Reviewer:"}</strong> Senior Policy Analyst fchyoga (2026-09-14 08:39 UTC)</div>
-          </div>
-
-          <div style={{ fontSize: "0.875rem", color: "var(--slate-700)", lineHeight: 1.6 }}>
-            <strong>{isId ? "Alasan Telaah Formal:" : "Formal Review Rationale:"}</strong>{" "}
-            {isId
-              ? "Perhitungan neraca nasional PDB mencakup pertambangan rakyat, informal, dan tambang skala kecil di seluruh provinsi, sedangkan kohort Energi/Batubara NADI hanya terdiri dari emiten skala besar yang tercatat di BEI (IDX) dan berorientasi ekspor. Pergerakan arah harus dicermati sebagai konteks makro umum saja, dan klaim kausalitas atau validasi langsung tidak diperbolehkan tanpa kajian ekonometrik lebih lanjut."
-              : "National accounts include informal, artisanal, and small-scale domestic mining operations across all provinces, whereas the NADI Energy/Coal cohort consists exclusively of large-scale, export-oriented IDX listed entities. Directional movement should be inspected for general macro context, but causal claims or validation are not permitted."}
-          </div>
+          ))}
         </div>
       )}
 
@@ -494,6 +445,34 @@ export default function DataAndMethodPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {activeTab === "glossary" && (
+        <div className="card">
+          <div className="card-eyebrow">{isId ? "Bahasa Produk" : "Product language"}</div>
+          <h2 style={{ margin: "0 0 6px", fontSize: "1.2rem" }}>{isId ? "Glosarium NADI" : "NADI glossary"}</h2>
+          <p style={{ color: "var(--slate-600)", marginTop: 0 }}>{isId ? "Definisi singkat untuk membaca alur radar sampai brief." : "Short definitions for reading the radar-to-brief workflow."}</p>
+          <dl className="glossary-grid">
+            {(isId ? [
+              ["Signal", "Pola perubahan fundamental yang dihitung secara deterministik."],
+              ["Kelompok perusahaan", "Perusahaan yang dibandingkan dalam satu sektor atau industri."],
+              ["Cakupan data", "Proporsi perusahaan dengan input yang cukup untuk dihitung."],
+              ["Sebaran pola", "Proporsi perusahaan yang menunjukkan arah signal yang sama."],
+              ["Evidence", "Observasi atau perhitungan yang mendukung suatu klaim."],
+              ["Counterevidence", "Evidence yang menantang atau membatasi interpretasi utama."],
+              ["Mode data", "Penanda apakah data berasal dari live atau snapshot tersimpan."],
+              ["Brief", "Ringkasan yang menggabungkan observasi, interpretasi, bukti, dan keterbatasan."],
+            ] : [
+              ["Signal", "A deterministically calculated pattern in company fundamentals."],
+              ["Company group", "Companies compared within one sector or industry."],
+              ["Coverage", "The share of companies with enough inputs to calculate."],
+              ["Breadth", "The share of companies showing the same signal direction."],
+              ["Evidence", "An observation or calculation supporting a claim."],
+              ["Counterevidence", "Evidence that challenges or limits the main interpretation."],
+              ["Data mode", "Whether data is live or a persisted stored snapshot."],
+              ["Brief", "A reviewable summary of observations, interpretations, evidence, and limits."],
+            ]).map(([term, definition]) => <div key={term}><dt>{term}</dt><dd>{definition}</dd></div>)}
+          </dl>
         </div>
       )}
     </AppShell>
