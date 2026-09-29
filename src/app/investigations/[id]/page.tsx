@@ -77,7 +77,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
     return () => {
       ignore = true;
     };
-  }, [id]);
+  }, [id, searchParams]);
 
   const handleRunInvestigation = async () => {
     setExecuting(true);
