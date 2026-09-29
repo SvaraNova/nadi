@@ -46,6 +46,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
       try {
         let response = await fetch(`/api/v1/investigations/${id}`);
         if (!response.ok) response = await fetch(`/api/investigations/${id}`);
+        let recreated = false;
         if (!response.ok) {
           const cohortId = searchParams.get("cohort");
           const signalRunId = searchParams.get("run");
@@ -56,11 +57,15 @@ export default function InvestigationWorkspacePage({ params }: Props) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ cohortId, signalRunId, question }),
             });
+            recreated = response.ok;
           }
         }
         if (response.ok && !ignore) {
           const data = await response.json();
           setInvestigation(data.investigation);
+          if (recreated && data.id && data.id !== id) {
+            router.replace(`/investigations/${data.id}?cohort=${encodeURIComponent(data.investigation.cohortId)}&run=${encodeURIComponent(data.investigation.signalRunId)}&q=${encodeURIComponent(data.investigation.question)}` as Route);
+          }
         }
       } catch (err) {
         console.error(err);
