@@ -6,6 +6,7 @@ import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
 import { IconArrowRight } from "../../components/ui/Icons";
 import type { Route } from "next";
+import { LiveInvestigationButton } from "../../components/ui/LiveInvestigationButton";
 
 export default async function StoredRadar({ id }: { id: string }) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -24,7 +25,10 @@ export default async function StoredRadar({ id }: { id: string }) {
           <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}><DataModeBadge mode="live" size="sm" /><span className="badge badge-snapshot">STORED RUN</span></div>
           <h1>Signal radar</h1>
         </div>
-        <Link href={`/radar/${id}/live-cohort` as Route} className="btn btn-secondary">Open detail <IconArrowRight size={15} /></Link>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <LiveInvestigationButton signalRunId={id} />
+          <Link href={`/radar/${id}/live-cohort` as Route} className="btn btn-secondary">Open detail <IconArrowRight size={15} /></Link>
+        </div>
       </div>
       <section className="orientation-panel live-run-explainer" style={{ marginBottom: "20px" }}>
         <div className="orientation-intro">
