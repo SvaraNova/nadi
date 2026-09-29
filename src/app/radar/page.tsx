@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { SignalDirectionBadge } from "../../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../../components/ui/InlineSparkline";
-import { buildSectorSignalRuns, SECTOR_DEFINITIONS } from "../../domain/sectors-dataset";
+import { buildSectorSignalRuns, SECTOR_DEFINITIONS, type SectorSignalSummary } from "../../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../../lib/i18n";
 import { formatScore } from "../../lib/formatters";
+import { IconArrowRight } from "../../components/ui/Icons";
 
 const SECTOR_SPARKLINE_DATA: Record<string, number[]> = {
   "energy-coal": [20, 30, 50, 65, 75],
@@ -21,7 +22,11 @@ const SECTOR_SPARKLINE_DATA: Record<string, number[]> = {
 export default function RadarPage() {
   const { language, t } = useLanguage();
   const isId = language === "id";
-  const allSectors = useMemo(() => buildSectorSignalRuns(), []);
+  const [liveSectors, setLiveSectors] = useState<SectorSignalSummary[]>([]);
+  const allSectors = useMemo(() => liveSectors.length ? liveSectors : buildSectorSignalRuns(), [liveSectors]);
+  useEffect(() => {
+    void fetch("/api/signal-runs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveSectors(payload?.sectors ?? [])).catch(() => setLiveSectors([]));
+  }, []);
 
   // Filter States
   const [period, setPeriod] = useState("Q1-2026");
@@ -30,7 +35,10 @@ export default function RadarPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"strength" | "breadth" | "name">("strength");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-
+  const [liveRun, setLiveRun] = useState<{ id: string; mode: string; status: string; dataset_id: string; data_cutoff: string | null; cohort_result: { label?: string; eligibleCount?: number; totalMembers?: number } } | null>(null);
+  useEffect(() => {
+    void fetch("/api/signal-runs/latest").then((response) => response.ok ? response.json() : null).then((payload) => setLiveRun(payload?.run ?? null)).catch(() => setLiveRun(null));
+  }, []);
   const industries = useMemo(() => {
     return Array.from(new Set(allSectors.map((s) => s.industry)));
   }, [allSectors]);
@@ -105,7 +113,7 @@ export default function RadarPage() {
   };
 
   return (
-    <AppShell dataMode="synthetic" activePeriod={`${period} vs ${period === "Q1-2026" ? "Q1-2025" : "Q4-2024"}`}>
+    <AppShell dataMode={liveSectors.length ? "live" : "synthetic"} activePeriod={`${period} vs ${period === "Q1-2026" ? "Q1-2025" : "Q4-2024"}`}>
       {/* Header */}
       <div className="page-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
@@ -145,6 +153,16 @@ export default function RadarPage() {
         <span>{isId ? "Radar mengurutkan sektor berdasarkan kekuatan dan sebaran pola laporan keuangan. Pilih sektor untuk melihat perusahaan dan perhitungan yang membentuk sinyal." : "The radar ranks sectors by the strength and breadth of financial-reporting patterns. Select a sector to inspect the companies and calculations behind its signal."}</span>
         <small>{isId ? "Skor 0–100 adalah heuristik, bukan probabilitas atau prediksi." : "Scores from 0–100 are heuristics, not probabilities or forecasts."}</small>
       </div>
+      {liveRun && (
+        <section className="live-run-banner" aria-label={isId ? "Signal live terbaru" : "Latest live signal"}>
+          <div>
+            <strong>{isId ? "Signal live tersedia" : "Live signal available"}</strong>
+            <span>{isId ? `Dataset live dengan ${liveRun.cohort_result.eligibleCount ?? 0}/${liveRun.cohort_result.totalMembers ?? 0} perusahaan eligible.` : `Live dataset with ${liveRun.cohort_result.eligibleCount ?? 0}/${liveRun.cohort_result.totalMembers ?? 0} eligible companies.`}</span>
+            <small>{isId ? "Radar demo di bawah tetap sintetis. Buka hasil tersimpan untuk melihat run live." : "The demo radar below remains synthetic. Open the stored result to inspect the live run."}</small>
+          </div>
+          <Link className="btn btn-sm btn-primary" href={`/radar/stored/${liveRun.id}` as Route}>{isId ? "Buka run live" : "Open live run"} <IconArrowRight size={12} /></Link>
+        </section>
+      )}
       </div>
 
       {/* Filter Chips Strip */}

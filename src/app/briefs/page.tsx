@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
 import { listBriefs } from "../../server/briefs/brief-service";
@@ -15,6 +15,8 @@ export default function BriefsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
+  const [liveBriefs, setLiveBriefs] = useState<{ id: string; title: string; status: string; current_version: number; data_mode: string }[]>([]);
+  useEffect(() => { void fetch("/api/v1/briefs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveBriefs(payload?.briefs ?? [])).catch(() => setLiveBriefs([])); }, []);
   const briefs = useMemo(() => listBriefs(), []);
 
   const filtered = useMemo(() => {
@@ -54,6 +56,11 @@ export default function BriefsPage() {
             {isId ? "+ Ringkasan Baru dari Investigasi" : "+ New Brief from Investigation"}
           </Link>
         </div>
+      {liveBriefs.length > 0 && (
+        <section className="live-run-banner" aria-label={isId ? "Brief live tersimpan" : "Stored live briefs"}>
+          <div><strong>{isId ? `${liveBriefs.length} brief live tersimpan` : `${liveBriefs.length} stored live briefs`}</strong><span>{isId ? "Brief ini berasal dari investigation live yang tersimpan di PostgreSQL. Detail UI lengkap sedang dialihkan ke sumber tersimpan ini." : "These briefs come from persisted live investigations in PostgreSQL. The full detail UI is being switched to this stored source."}</span></div>
+        </section>
+      )}
       </div>
       <div className="flow-guide">
         <strong>{isId ? "Apa isi brief ini?" : "What is a brief for?"}</strong>

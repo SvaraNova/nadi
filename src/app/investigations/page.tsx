@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
 import { listInvestigations } from "../../server/investigation/investigation-service";
@@ -14,6 +14,8 @@ export default function InvestigationsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
+  const [liveInvestigations, setLiveInvestigations] = useState<{ id: string; signal_run_id: string; status: string; created_at: string; brief: { dataMode?: string; summary?: string } | null }[]>([]);
+  useEffect(() => { void fetch("/api/v1/investigations/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveInvestigations(payload?.investigations ?? [])).catch(() => setLiveInvestigations([])); }, []);
   const investigations = useMemo(() => listInvestigations(), []);
 
   const filtered = useMemo(() => {
@@ -53,6 +55,11 @@ export default function InvestigationsPage() {
             {isId ? "+ Investigasi Baru dari Radar" : "+ New Investigation from Radar"}
           </Link>
         </div>
+      {liveInvestigations.length > 0 && (
+        <section className="live-run-banner" aria-label={isId ? "Investigasi live tersimpan" : "Stored live investigations"}>
+          <div><strong>{isId ? `${liveInvestigations.length} investigasi live tersimpan` : `${liveInvestigations.length} stored live investigations`}</strong><span>{isId ? "Investigation ini membaca signal dan evidence live dari PostgreSQL. Detail UI lengkap segera menggunakan sumber tersimpan ini." : "These investigations read live signals and evidence from PostgreSQL. The full detail UI is being switched to this stored source."}</span></div>
+        </section>
+      )}
       </div>
       <div className="flow-guide">
         <strong>{isId ? "Apa yang dilakukan AI?" : "What does the AI do?"}</strong>

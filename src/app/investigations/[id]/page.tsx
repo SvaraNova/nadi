@@ -30,9 +30,10 @@ export default function InvestigationWorkspacePage({ params }: Props) {
     let ignore = false;
     async function load() {
       try {
-        const res = await fetch(`/api/investigations/${id}`);
-        if (res.ok && !ignore) {
-          const data = await res.json();
+        const res = await fetch(`/api/v1/investigations/${id}`);
+        const fallback = res.ok ? res : await fetch(`/api/investigations/${id}`);
+        if (fallback.ok && !ignore) {
+          const data = await fallback.json();
           setInvestigation(data.investigation);
         }
       } catch (err) {

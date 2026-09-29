@@ -34,7 +34,8 @@ export default function BriefBuilderPage({ params }: Props) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/briefs/${id}`);
+        let res = await fetch(`/api/v1/briefs/${id}`);
+        if (!res.ok) res = await fetch(`/api/briefs/${id}`);
         if (res.ok) {
           const data = await res.json();
           setBrief(data.brief);
