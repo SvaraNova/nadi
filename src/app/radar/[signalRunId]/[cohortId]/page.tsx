@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "../../../../components/layout/AppShell";
 import { DataModeBadge } from "../../../../components/ui/DataModeBadge";
@@ -193,6 +193,13 @@ export default function SignalDetailPage({ params }: Props) {
     }
   }, [cohort]);
 
+  const isPersistedLiveRun = /^[0-9a-f-]{36}$/i.test(_signalRunId);
+  useEffect(() => {
+    if (isPersistedLiveRun) router.replace(`/radar/stored/${_signalRunId}` as Route);
+  }, [isPersistedLiveRun, router, _signalRunId]);
+  if (isPersistedLiveRun) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Membuka data live..." : "Opening live data..."}</h2><p>{isId ? "Mengambil putaran sinyal tersimpan dari PostgreSQL." : "Loading the persisted signal run from PostgreSQL."}</p></div></AppShell>;
+  }
   return (
     <AppShell dataMode="synthetic">
       {/* Back Link */}
