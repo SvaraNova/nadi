@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { SignalDirectionBadge } from "../components/ui/SignalDirectionBadge";
-import { InlineSparkline } from "../components/ui/InlineSparkline";
 import { IconArrowRight, IconShieldCheck } from "../components/ui/Icons";
 import type { SectorSignalSummary } from "../domain/sectors-dataset";
 import type { Route } from "next";
@@ -40,14 +39,6 @@ export default function OverviewPage() {
   const totalEligible = sectors.reduce((acc, s) => acc + s.cohortSignal.eligibleCount, 0);
   const totalUniverse = sectors.reduce((acc, s) => acc + s.cohortSignal.totalMembers, 0);
 
-  // Sparkline historical data mappings per sector
-  const sectorSparklines: Record<string, number[]> = {
-    "energy-coal": [20, 30, 50, 65, 75],
-    "consumer-staples": [70, 75, 72, 78, 80],
-    "basic-materials": [40, 45, 55, 52, 50],
-    "industrial-logistics": [50, 55, 60, 68, 75],
-    "telecommunications": [30, 35, 40, 38, 40],
-  };
 
   const getSectorDisplayName = (s: SectorSignalSummary) => {
     if (!isId) return s.name;
@@ -316,8 +307,8 @@ export default function OverviewPage() {
             </h2>
             <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", marginTop: "2px" }}>
               {isId
-                ? "Diurutkan berdasarkan prioritas perhatian kebijakan dengan grafik tren 5 kuartal."
-                : "Sorted by macro intervention priority with 5-quarter trend sparklines."}
+                ? "Diurutkan berdasarkan prioritas perhatian kebijakan pasar."
+                : "Sorted by macro intervention priority."}
             </div>
           </div>
           <span className="badge badge-snapshot">
@@ -331,7 +322,6 @@ export default function OverviewPage() {
               <tr>
                 <th scope="col">{isId ? "Sektor Kohort" : "Sector Cohort"}</th>
                 <th scope="col">{isId ? "Arah" : "Direction"}</th>
-                <th scope="col" style={{ width: "110px" }}>{isId ? "Tren 5-Kuartal" : "5-Q Trend"}</th>
                 <th scope="col" style={{ textAlign: "right" }}>{isId ? "Risiko / Peluang" : "Risk / Opp"}</th>
                 <th scope="col" style={{ textAlign: "right" }}>{isId ? "Sebaran Sinyal" : "Breadth"}</th>
                 <th scope="col">{isId ? "Faktor Finansial Utama" : "Dominant Financial Driver"}</th>
@@ -341,13 +331,6 @@ export default function OverviewPage() {
             </thead>
             <tbody>
               {sectors.map((s) => {
-                const sparkData = sectorSparklines[s.id] || [40, 45, 50, 50, 50];
-                const sparkColor = s.cohortSignal.label === "risk"
-                  ? "var(--risk-600)"
-                  : s.cohortSignal.label === "opportunity"
-                  ? "var(--opp-600)"
-                  : "var(--slate-500)";
-
                 return (
                   <tr key={s.id}>
                     <td>
@@ -356,14 +339,6 @@ export default function OverviewPage() {
                     </td>
                     <td>
                       <SignalDirectionBadge direction={s.cohortSignal.label} size="sm" />
-                    </td>
-                    <td>
-                      <InlineSparkline
-                        data={sparkData}
-                        color={sparkColor}
-                        fill
-                        ariaLabel={`${isId ? "Tren 5-kuartal untuk" : "5-quarter trend for"} ${getSectorDisplayName(s)}`}
-                      />
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right", fontWeight: 700 }}>
                       <span
@@ -382,9 +357,13 @@ export default function OverviewPage() {
                     </td>
                     <td className="tabular-nums" style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 600 }}>
-                        {s.cohortSignal.riskBreadth ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}% ${isId ? "risiko" : "risk"}` : ""}
-                        {s.cohortSignal.opportunityBreadth ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}% ${isId ? "peluang" : "opp"}` : ""}
-                        {!s.cohortSignal.riskBreadth && !s.cohortSignal.opportunityBreadth ? (isId ? "Stabil" : "Baseline") : ""}
+                        {s.cohortSignal.riskBreadth && s.cohortSignal.opportunityBreadth
+                          ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}% ${isId ? "risiko" : "risk"} · ${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}% ${isId ? "peluang" : "opp"}`
+                          : s.cohortSignal.riskBreadth
+                          ? `${Math.round(Number(s.cohortSignal.riskBreadth) * 100)}% ${isId ? "risiko" : "risk"}`
+                          : s.cohortSignal.opportunityBreadth
+                          ? `${Math.round(Number(s.cohortSignal.opportunityBreadth) * 100)}% ${isId ? "peluang" : "opp"}`
+                          : isId ? "Stabil" : "Baseline"}
                       </div>
                       <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)" }}>
                         {s.cohortSignal.eligibleCount}/{s.cohortSignal.totalMembers} {isId ? "sampel" : "sample"}

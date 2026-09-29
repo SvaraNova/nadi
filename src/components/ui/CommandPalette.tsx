@@ -18,7 +18,51 @@ interface CommandItem {
   title: string;
   subtitle?: string;
   shortcut?: string;
+  keywords?: string;
   action: () => void;
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().normalize("NFKD").replace(/\p{Diacritic}/gu, "");
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Rank items so ticker/name prefix matches beat mid-string matches, which beat
+// matches only found in hidden keywords (industry, description, sector id aliases).
+function scoreCommand(item: CommandItem, q: string): number {
+  const title = normalizeText(item.title);
+  const subtitle = item.subtitle ? normalizeText(item.subtitle) : "";
+  const keywords = item.keywords ? normalizeText(item.keywords) : "";
+  const category = normalizeText(item.category);
+  const symbol = normalizeText(item.title.split("—")[0].trim());
+  const wordBoundary = new RegExp(`(^|[\\s(—-])${escapeRegExp(q)}`);
+  if (symbol === q) return 100;
+  if (symbol.startsWith(q)) return 95;
+  if (title.startsWith(q)) return 90;
+  if (subtitle.startsWith(q)) return 70;
+  if (wordBoundary.test(title)) return 65;
+  if (title.includes(q)) return 55;
+  if (subtitle.includes(q)) return 45;
+  if (keywords.includes(q)) return 30;
+  if (category.includes(q)) return 15;
+  return -1;
+}
+
+function highlightMatch(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  const idx = normalizeText(text).indexOf(normalizeText(q));
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="command-highlight">{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
 }
 
 export const CommandPalette: FC<Props> = ({ isOpen, onClose, onRoleChange }) => {
@@ -36,6 +80,10 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [liveSectors, setLiveSectors] = useState<{ id: string; name: string; industry: string; runId: string; cohortSignal: { label: string; eligibleCount: number; totalMembers: number } }[]>([]);
+  useEffect(() => {
+    void fetch("/api/signal-runs/live").then((r) => (r.ok ? r.json() : null)).then((p) => setLiveSectors(p?.sectors ?? [])).catch(() => setLiveSectors([]));
+  }, []);
 
   // Build command list
   const commands: CommandItem[] = useMemo(() => {
@@ -82,40 +130,31 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
         action: () => { router.push("/data" as Route); onClose(); },
       },
 
-      // Sectors
-      {
-        id: "sec-nickel",
+      // Sectors (live, only sectors with a computed signal run are searchable)
+      ...liveSectors.map((sector): CommandItem => ({
+        id: `sec-${sector.id}`,
         category: "Sectors",
-        title: "Basic Materials — Nickel & Minerals",
-        subtitle: "Mixed Signal (Risk 50 / Opp 50) · 5 Constituents",
-        action: () => { router.push("/radar/run-basic-materials-2026-03-31/basic-materials" as Route); onClose(); },
-      },
-      {
-        id: "sec-logistics",
-        category: "Sectors",
-        title: "Industrial — Logistics & Transport",
-        subtitle: "Opportunity Signal (Opp 75.0) · 4 Constituents",
-        action: () => { router.push("/radar/run-industrial-logistics-2026-03-31/industrial-logistics" as Route); onClose(); },
-      },
-      {
-        id: "sec-telco",
-        category: "Sectors",
-        title: "Telecommunications & Digital Infrastructure",
-        subtitle: "Insufficient Data (<60% coverage) · 3 Constituents",
-        action: () => { router.push("/radar/run-telecommunications-2026-03-31/telecommunications" as Route); onClose(); },
-      },
+        title: sector.name,
+        subtitle: `${sector.cohortSignal.label.replaceAll("_", " ")} · ${sector.cohortSignal.eligibleCount}/${sector.cohortSignal.totalMembers} eligible`,
+        keywords: `${sector.industry} ${sector.id}`,
+        action: () => { router.push(`/radar/stored/${sector.runId}` as Route); onClose(); },
+      })),
     ];
 
-    // Constituents
+    // Constituents (only for sectors that already have a live signal run to link to)
+    const runIdBySector = new Map(liveSectors.map((s) => [s.id, s.runId]));
     SECTOR_DEFINITIONS.forEach((sector) => {
+      const runId = runIdBySector.get(sector.id);
+      if (!runId) return;
       sector.companies.forEach((co) => {
         items.push({
           id: `co-${co.symbol}`,
           category: "Companies",
           title: `${co.symbol} — ${co.name}`,
           subtitle: `In ${sector.name} (${co.marketCapCategory})`,
+          keywords: `${sector.industry} ${sector.description}`,
           action: () => {
-            router.push(`/radar/run-${sector.id}-2026-03-31/${sector.id}` as Route);
+            router.push(`/radar/stored/${runId}` as Route);
             onClose();
           },
         });
@@ -150,17 +189,17 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
     }
 
     return items;
-  }, [router, onClose, onRoleChange]);
+  }, [router, onClose, onRoleChange, liveSectors]);
 
   // Filter commands
   const filteredCommands = useMemo(() => {
-    if (!query.trim()) return commands.slice(0, 12);
-    const q = query.toLowerCase();
-    return commands.filter((c) =>
-      c.title.toLowerCase().includes(q) ||
-      (c.subtitle && c.subtitle.toLowerCase().includes(q)) ||
-      c.category.toLowerCase().includes(q)
-    );
+    const q = normalizeText(query.trim());
+    if (!q) return commands.slice(0, 12);
+    return commands
+      .map((item) => ({ item, score: scoreCommand(item, q) }))
+      .filter((entry) => entry.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.item);
   }, [commands, query]);
 
   // Focus input when opened
@@ -230,8 +269,8 @@ const CommandPaletteModal: FC<ModalProps> = ({ onClose, onRoleChange }) => {
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
                     <span className="command-category-tag">{item.category}</span>
                     <div>
-                      <div className="command-title">{item.title}</div>
-                      {item.subtitle && <div className="command-subtitle">{item.subtitle}</div>}
+                      <div className="command-title">{highlightMatch(item.title, query)}</div>
+                      {item.subtitle && <div className="command-subtitle">{highlightMatch(item.subtitle, query)}</div>}
                     </div>
                   </div>
                   {item.shortcut && (
