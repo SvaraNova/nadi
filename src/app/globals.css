@@ -1261,6 +1261,154 @@ tbody td {
 .run-metadata dd { margin: 0; color: var(--white); font-size: 0.8125rem; font-weight: 700; text-align: right; }
 .run-metadata code { color: var(--primary-100); font-family: var(--font-mono); font-size: 0.75rem; }
 @media (max-width: 800px) { .run-metadata > div { justify-content: flex-start; flex-wrap: wrap; } .run-metadata dd { margin-left: auto; } }
+
+/* Evidence detail page */
+.evidence {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 28px 0 56px;
+  color: var(--slate-900);
+}
+.evidence > a:first-child {
+  display: inline-flex;
+  margin-bottom: 18px;
+  color: var(--primary-700);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.evidence > a:first-child:hover { text-decoration: underline; }
+.evidence .eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary-700);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.evidence h1 {
+  margin: 0 0 12px;
+  color: var(--slate-950);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.1;
+}
+.evidence h2 {
+  margin: 28px 0 10px;
+  color: var(--slate-950);
+  font-size: 1.05rem;
+}
+.evidence h3 {
+  margin: 28px 0 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-light);
+  color: var(--slate-950);
+  font-size: 0.95rem;
+}
+.evidence > p {
+  margin: 7px 0;
+  color: var(--slate-600);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+.evidence > p code,
+.evidence section code {
+  overflow-wrap: anywhere;
+  color: var(--primary-800);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.evidence > ul {
+  margin: 10px 0;
+  padding-left: 20px;
+  color: var(--risk-700);
+  font-size: 0.8125rem;
+}
+.evidence > dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 14px 0 24px;
+}
+.evidence > dl > div {
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--slate-50);
+}
+.evidence > dl dt {
+  color: var(--slate-500);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.evidence > dl dd {
+  margin: 4px 0 0;
+  color: var(--slate-900);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+.evidence .table-scroll {
+  margin: 14px 0 28px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+.evidence table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.evidence caption {
+  padding: 12px 14px;
+  color: var(--slate-600);
+  caption-side: top;
+  text-align: left;
+}
+.evidence th,
+.evidence td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light);
+  text-align: left;
+  vertical-align: top;
+}
+.evidence thead th {
+  background: var(--slate-50);
+  color: var(--slate-600);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.evidence tbody tr:last-child th,
+.evidence tbody tr:last-child td { border-bottom: 0; }
+.evidence tbody th { color: var(--slate-900); font-weight: 700; }
+.evidence tbody td { color: var(--slate-600); }
+.evidence tbody a,
+.evidence section > a {
+  color: var(--primary-700);
+  font-weight: 700;
+  text-decoration: none;
+}
+.evidence tbody a:hover,
+.evidence section > a:hover { text-decoration: underline; }
+.evidence section {
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--slate-50);
+}
+.evidence section h3 { margin-top: 0; padding-top: 0; border-top: 0; }
+.evidence section p {
+  margin: 7px 0;
+  color: var(--slate-600);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+@media (max-width: 700px) {
+  .evidence { width: min(100% - 24px, 1200px); padding-top: 18px; }
+  .evidence > dl { grid-template-columns: 1fr; }
+  .evidence .table-scroll { overflow-x: auto; }
+}
 .loading-page { display: grid; gap: 18px; }
 .loading-breadcrumb { margin-bottom: 4px; }
 .loading-header { display: grid; gap: 10px; margin-bottom: 4px; }
