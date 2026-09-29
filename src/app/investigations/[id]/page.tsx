@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { use, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AppShell } from "../../../components/layout/AppShell";
 import { DataModeBadge } from "../../../components/ui/DataModeBadge";
 import { EvidenceDrawer, type EvidenceRecord } from "../../../components/ui/EvidenceDrawer";
-import { IconTerminal, IconAlertTriangle, IconArrowRight, IconShieldCheck } from "../../../components/ui/Icons";
+import { IconTerminal, IconAlertTriangle } from "../../../components/ui/Icons";
 import { useLanguage } from "../../../lib/i18n";
-import type { StoredInvestigationRecord } from "../../../server/investigation/investigation-service";
+import type { InvestigationBrief, InvestigationEvent, InvestigationStatus } from "../../../domain/investigation";
 import type { Route } from "next";
 
 const TOOL_LABELS: Record<string, { id: string; en: string }> = {
@@ -24,6 +24,22 @@ function getToolLabel(tool: string, isId: boolean): string {
   return TOOL_LABELS[tool]?.[isId ? "id" : "en"] ?? tool.replace(/_/g, " ");
 }
 
+interface LiveInvestigation {
+  id: string;
+  cohortId: string;
+  signalRunId: string;
+  question: string;
+  status: InvestigationStatus;
+  dataMode: "live";
+  period: string;
+  methodVersion: string;
+  model: string;
+  createdAt: string;
+  finishedAt?: string;
+  events: readonly InvestigationEvent[];
+  brief: InvestigationBrief | null;
+}
+
 interface Props {
   params: Promise<{ id: string }>;
 }
@@ -33,39 +49,20 @@ export default function InvestigationWorkspacePage({ params }: Props) {
   const { id } = use(params);
   const { language } = useLanguage();
   const isId = language === "id";
-  const searchParams = useSearchParams();
 
-  const [investigation, setInvestigation] = useState<StoredInvestigationRecord | null>(null);
+  const [investigation, setInvestigation] = useState<LiveInvestigation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [executing, setExecuting] = useState(false);
+  const [openingBrief, setOpeningBrief] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRecord | null>(null);
 
   useEffect(() => {
     let ignore = false;
     async function load() {
       try {
-        let response = await fetch(`/api/v1/investigations/${id}`);
-        if (!response.ok) response = await fetch(`/api/investigations/${id}`);
-        let recreated = false;
-        if (!response.ok) {
-          const cohortId = searchParams.get("cohort");
-          const signalRunId = searchParams.get("run");
-          const question = searchParams.get("q");
-          if (cohortId && signalRunId && question) {
-            response = await fetch("/api/investigations", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ cohortId, signalRunId, question }),
-            });
-            recreated = response.ok;
-          }
-        }
+        const response = await fetch(`/api/v1/investigations/${id}`);
         if (response.ok && !ignore) {
           const data = await response.json();
           setInvestigation(data.investigation);
-          if (recreated && data.id && data.id !== id) {
-            router.replace(`/investigations/${data.id}?cohort=${encodeURIComponent(data.investigation.cohortId)}&run=${encodeURIComponent(data.investigation.signalRunId)}&q=${encodeURIComponent(data.investigation.question)}` as Route);
-          }
         }
       } catch (err) {
         console.error(err);
@@ -74,72 +71,63 @@ export default function InvestigationWorkspacePage({ params }: Props) {
       }
     }
     load();
-    return () => {
-      ignore = true;
-    };
-  }, [id, searchParams]);
+    return () => { ignore = true; };
+  }, [id]);
 
-  const handleRunInvestigation = async () => {
-    setExecuting(true);
+  const handleOpenBrief = async () => {
+    if (!investigation) return;
+    setOpeningBrief(true);
     try {
-      const res = await fetch(`/api/investigations/${id}`, {
+      const res = await fetch("/api/v1/briefs/from-investigation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "execute" }),
+        body: JSON.stringify({ investigationId: investigation.id }),
       });
       if (res.ok) {
         const data = await res.json();
-        setInvestigation(data.investigation);
+        router.push(`/briefs/${data.briefId}` as Route);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setExecuting(false);
+      setOpeningBrief(false);
     }
   };
 
-  const handleCancel = async () => {
+  const handleOpenCitation = async (evId: string) => {
+    if (!investigation) return;
     try {
-      const res = await fetch(`/api/investigations/${id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel" }),
+      const res = await fetch(`/api/v1/evidence/${investigation.signalRunId}/${evId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setSelectedEvidence({
+        id: data.id,
+        entityName: data.symbol,
+        symbol: data.symbol,
+        metric: data.metric,
+        priorValue: data.priorValue,
+        currentValue: data.currentValue,
+        unit: data.unit,
+        currency: data.currency,
+        basis: data.basis,
+        period: data.period,
+        retrievedAt: data.retrievedAt,
+        formula: "100 * (current - prior) / |prior|",
+        calculationResult: data.currentValue && data.priorValue ? `${(100 * (Number(data.currentValue) - Number(data.priorValue)) / Math.abs(Number(data.priorValue))).toFixed(2)}%` : "—",
+        datasetId: data.datasetId,
+        signalRunId: data.signalRunId,
+        notes: isId ? "Observasi tersitasi terikat pada silsilah investigasi live." : "Cited observation bound to the live investigation lineage.",
+        sourcePointer: data.sourcePointer,
+        payloadHash: data.payloadHash,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setInvestigation(data.investigation);
-      }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleOpenCitation = (evId: string) => {
-    setSelectedEvidence({
-      id: evId,
-      entityName: evId.includes("AADI") ? "PT Adaro Andalan Indonesia Tbk" : evId.includes("BYAN") ? "PT Bayan Resources Tbk" : "PT Bumi Resources Tbk",
-      symbol: evId.includes("AADI") ? "AADI.JK" : evId.includes("BYAN") ? "BYAN.JK" : "BUMI.JK",
-      metric: evId.includes("REVENUE") ? "revenue" : evId.includes("PNL") ? "operating_pnl" : "total_debt",
-      priorValue: "12500000",
-      currentValue: "9800000",
-      unit: "IDR thousands",
-      currency: "IDR",
-      basis: "standalone_quarter",
-      period: "Q1-2026 (ended 2026-03-31)",
-      retrievedAt: "2026-09-14 18:30:00 UTC",
-      formula: "100 * (current - prior) / |prior|",
-      calculationResult: "-21.6% YoY",
-      datasetId: "synthetic-dataset-v0.1",
-      signalRunId: investigation?.signalRunId || "run-energy-coal-2026-03-31",
-      notes: "Strict IDR normalization; observation lineage verified by bounded claim validator.",
-      sourcePointer: "/0/revenue",
-      payloadHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    });
-  };
-
   if (loading) {
     return (
-      <AppShell dataMode="synthetic">
+      <AppShell dataMode="live">
         <div style={{ padding: "64px 24px", textAlign: "center" }}>
           <div className="sidebar-logo-pulse" style={{ width: "16px", height: "16px", marginBottom: "16px" }} />
           <h2>{isId ? "Memuat ruang kerja investigasi..." : "Loading investigation workspace..."}</h2>
@@ -153,7 +141,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
 
   if (!investigation) {
     return (
-      <AppShell dataMode="synthetic">
+      <AppShell dataMode="live">
         <div className="card" style={{ padding: "48px", textAlign: "center" }}>
           <h2>{isId ? "Investigasi Tidak Ditemukan" : "Investigation Not Found"}</h2>
           <p>{isId ? "Investigasi yang diminta tidak ada atau sudah kedaluwarsa." : "The requested investigation does not exist or has expired."}</p>
@@ -166,7 +154,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
   }
 
   return (
-    <AppShell dataMode={investigation.dataMode}>
+    <AppShell dataMode="live">
       {/* Back link */}
       <div style={{ marginBottom: "16px" }}>
         <Link href={"/investigations" as Route} style={{ fontSize: "0.875rem", color: "var(--slate-600)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
@@ -179,7 +167,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-              <DataModeBadge mode={investigation.dataMode} size="sm" />
+              <DataModeBadge mode="live" size="sm" />
               <span className={`badge ${investigation.status === "completed" ? "badge-opportunity" : "badge-neutral"}`}>
                 STATUS: {investigation.status === "completed" ? (isId ? "SELESAI" : "COMPLETED") : investigation.status === "running" ? (isId ? "BERJALAN" : "RUNNING") : (isId ? "SEBAGIAN" : "PARTIAL")}
               </span>
@@ -189,39 +177,19 @@ export default function InvestigationWorkspacePage({ params }: Props) {
             </div>
             <h1>{isId ? "Ruang Kerja Investigasi AI Terikat" : "Bounded AI Investigation Workspace"}</h1>
             <p className="page-subtitle">
-              {isId ? "Pertanyaan: " : "Inquiry: "}“<strong>{investigation.question}</strong>”
+              {isId ? "Pertanyaan: " : "Inquiry: "}"<strong>{investigation.question}</strong>"
             </p>
           </div>
 
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            {investigation.status === "running" && (
+            {investigation.status === "completed" && investigation.brief && (
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleRunInvestigation}
-                disabled={executing}
+                onClick={handleOpenBrief}
+                disabled={openingBrief}
               >
-                {executing
-                  ? (isId ? "Menjalankan Investigasi..." : "Running Investigation...")
-                  : (isId ? "Jalankan Proses Terikat" : "Execute Bounded Run")}
-              </button>
-            )}
-            {investigation.status === "running" && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleCancel}
-              >
-                {isId ? "Batalkan Proses" : "Cancel Run"}
-              </button>
-            )}
-            {investigation.status === "completed" && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => router.push(`/briefs/new?investigationId=${investigation.id}` as Route)}
-              >
-                {isId ? "Tingkatkan ke Ringkasan Keputusan →" : "Promote to Decision Brief →"}
+                {openingBrief ? (isId ? "Membuka..." : "Opening...") : (isId ? "Buka Ringkasan Keputusan →" : "Open Decision Brief →")}
               </button>
             )}
           </div>
@@ -273,11 +241,10 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                 {isId ? "Batasan & Kuota Aktif" : "Active Guardrails & Quota"}
               </div>
               <ul style={{ margin: 0, paddingLeft: "16px", color: "var(--slate-700)", fontSize: "0.75rem", lineHeight: 1.6 }}>
-                <li>{isId ? "Anggaran Alat: Maks 12 panggilan (6 terpakai)" : "Tool Budget: 12 calls max (6 used)"}</li>
+                <li>{isId ? "Anggaran Alat: Maks 12 panggilan" : "Tool Budget: 12 calls max"}</li>
                 <li>{isId ? "Batas Waktu Eksekusi: 120 detik" : "Execution Timeout: 120 seconds"}</li>
-                <li>{isId ? "Daftar Izin Ketat: Aktif" : "Strict Allowlist: Active"}</li>
                 <li>{isId ? "Validasi Sitasi: Ditegakkan" : "Citation Validation: Enforced"}</li>
-                <li>{isId ? "Proteksi Fabrikasi: Tanpa data LLM eksternal" : "Fabrication Protection: No external LLM data"}</li>
+                <li>{isId ? "Proteksi Fabrikasi: Tanpa angka atau sumber baru" : "Fabrication Protection: No invented numbers or sources"}</li>
               </ul>
             </div>
           </div>
@@ -331,20 +298,12 @@ export default function InvestigationWorkspacePage({ params }: Props) {
               <div className="card-eyebrow">{isId ? "Landasan Bukti" : "Evidence Grounding"}</div>
               <h2 style={{ margin: 0, fontSize: "1.1rem" }}>{isId ? "Temuan Terstruktur & Klaim" : "Structured Findings & Claims"}</h2>
             </div>
-            <span className="badge badge-opportunity">{isId ? "Klaim Terverifikasi" : "Claims Verified"}</span>
+            {investigation.brief && <span className="badge badge-opportunity">{isId ? "Klaim Terverifikasi" : "Claims Verified"}</span>}
           </div>
 
           {!investigation.brief ? (
             <div style={{ textAlign: "center", padding: "40px 16px", color: "var(--slate-500)" }}>
-              <p>{isId ? "Jalankan investigasi untuk menghasilkan temuan terstruktur berbasis bukti." : "Run the investigation to generate structured, evidence-grounded findings."}</p>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={handleRunInvestigation}
-                disabled={executing}
-              >
-                {executing ? (isId ? "Mengeksekusi..." : "Executing...") : (isId ? "Mulai Proses Terikat" : "Start Bounded Run")}
-              </button>
+              <p>{isId ? "Investigasi ini belum menghasilkan temuan terstruktur." : "This investigation has not produced structured findings yet."}</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -366,7 +325,6 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                     let badgeClass = "badge-neutral";
                     if (claim.kind === "observation") badgeClass = "badge-opportunity";
                     else if (claim.kind === "interpretation") badgeClass = "badge-live";
-                    else if (claim.kind === "hypothesis") badgeClass = "badge-synthetic";
                     else if (claim.kind === "limitation") badgeClass = "badge-insufficient";
 
                     const kindLabel =
@@ -417,16 +375,27 @@ export default function InvestigationWorkspacePage({ params }: Props) {
               </div>
 
               {/* Counterevidence Register */}
-              {investigation.brief.contradictingEvidenceIds.length > 0 && (
+              {investigation.brief.contradictingEvidenceIds.length > 0 ? (
                 <div style={{ padding: "12px 14px", background: "var(--warn-50)", border: "1px solid var(--warn-200)", borderRadius: "var(--radius-md)" }}>
                   <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--warn-900)", textTransform: "uppercase", marginBottom: "4px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <IconAlertTriangle size={13} /> {isId ? "Daftar Bukti Sanggahan & Divergensi" : "Counterevidence & Divergence Register"}
+                    <IconAlertTriangle size={13} /> {isId ? "Bukti Sanggahan & Divergensi" : "Counterevidence & Divergence"}
                   </div>
-                  <div style={{ fontSize: "0.8125rem", color: "var(--warn-900)", lineHeight: 1.45 }}>
-                    {isId
-                      ? <><strong>BUMI.JK</strong> mencatat ekspansi pendapatan (+2,17%), berbeda dengan kontraksi margin seluruh sektor yang diamati pada AADI.JK dan BYAN.JK.</>
-                      : <><strong>BUMI.JK</strong> recorded revenue expansion (+2.17%), diverging from the sector-wide margin compression observed in AADI.JK and BYAN.JK.</>}
+                  <div style={{ fontSize: "0.8125rem", color: "var(--warn-900)", lineHeight: 1.45, display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                    {investigation.brief.contradictingEvidenceIds.map((eid, eIdx) => (
+                      <button key={eid} type="button" className="citation-tag" onClick={() => handleOpenCitation(eid)}>[C{eIdx + 1}]</button>
+                    ))}
                   </div>
+                </div>
+              ) : (
+                <div style={{ padding: "12px 14px", background: "var(--slate-50)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", fontSize: "0.8125rem", color: "var(--slate-600)" }}>
+                  {isId ? "Tidak ada bukti sanggahan yang diajukan untuk investigasi ini." : "No counterevidence was raised for this investigation."}
+                </div>
+              )}
+
+              {investigation.brief.dataGaps.length > 0 && (
+                <div style={{ padding: "12px 14px", background: "var(--slate-50)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", fontSize: "0.8125rem", color: "var(--slate-700)", lineHeight: 1.5 }}>
+                  <strong>{isId ? "Kesenjangan Data: " : "Data Gaps: "}</strong>
+                  {investigation.brief.dataGaps.join(" · ")}
                 </div>
               )}
 
@@ -444,9 +413,10 @@ export default function InvestigationWorkspacePage({ params }: Props) {
                   type="button"
                   className="btn btn-primary"
                   style={{ width: "100%" }}
-                  onClick={() => router.push(`/briefs/new?investigationId=${investigation.id}` as Route)}
+                  onClick={handleOpenBrief}
+                  disabled={openingBrief}
                 >
-                  {isId ? "Kirimkan Ringkasan Keputusan →" : "Deliver Decision Brief →"}
+                  {openingBrief ? (isId ? "Membuka..." : "Opening...") : (isId ? "Buka Ringkasan Keputusan →" : "Open Decision Brief →")}
                 </button>
               </div>
             </div>

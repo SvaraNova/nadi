@@ -4,9 +4,19 @@ import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
-import { listInvestigations } from "../../server/investigation/investigation-service";
 import { useLanguage } from "../../lib/i18n";
 import type { Route } from "next";
+import type { InvestigationBrief } from "../../domain/investigation";
+
+interface LiveInvestigationRow {
+  id: string;
+  signal_run_id: string;
+  status: string;
+  brief: InvestigationBrief | null;
+  created_at: string;
+  finished_at: string | null;
+  mode: string;
+}
 
 export default function InvestigationsPage() {
   const { language } = useLanguage();
@@ -14,25 +24,29 @@ export default function InvestigationsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  const [liveInvestigations, setLiveInvestigations] = useState<{ id: string; signal_run_id: string; status: string; created_at: string; brief: { dataMode?: string; summary?: string } | null }[]>([]);
-  useEffect(() => { void fetch("/api/v1/investigations/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveInvestigations(payload?.investigations ?? [])).catch(() => setLiveInvestigations([])); }, []);
-  const investigations = useMemo(() => listInvestigations(), []);
+  const [investigations, setInvestigations] = useState<LiveInvestigationRow[] | null>(null);
+  useEffect(() => { void fetch("/api/v1/investigations/live").then((response) => response.ok ? response.json() : null).then((payload) => setInvestigations(payload?.investigations ?? [])).catch(() => setInvestigations([])); }, []);
 
   const filtered = useMemo(() => {
+    if (!investigations) return [];
     return investigations.filter((inv) => {
       if (statusFilter !== "all" && inv.status !== statusFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
-        const matchQ = inv.question.toLowerCase().includes(q);
-        const matchC = inv.cohortId.toLowerCase().includes(q);
-        if (!matchQ && !matchC) return false;
+        const question = inv.brief?.investigationQuestions?.[0] ?? "";
+        const cohortId = inv.brief?.cohortId ?? "";
+        if (!question.toLowerCase().includes(q) && !cohortId.toLowerCase().includes(q)) return false;
       }
       return true;
     });
   }, [investigations, statusFilter, search]);
 
+  if (!investigations) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Memuat investigasi live..." : "Loading live investigations..."}</h2><p>{isId ? "Daftar ini hanya membaca investigation_run yang tersimpan di PostgreSQL." : "This list only reads investigation_run rows persisted in PostgreSQL."}</p></div></AppShell>;
+  }
+
   return (
-    <AppShell dataMode="synthetic">
+    <AppShell dataMode="live">
       <div className="page-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
@@ -47,23 +61,18 @@ export default function InvestigationsPage() {
             <h1>{isId ? "Investigasi Ekonomi AI" : "AI Economic Investigations"}</h1>
             <p className="page-subtitle">
               {isId
-                ? "Investigasi AI berbasis bukti yang terikat pada dataset yang tidak dapat diubah dan perhitungan sinyal yang dapat direproduksi."
-                : "Bounded, evidence-grounded AI investigations pinned to immutable datasets and reproducible signal calculations."}
+                ? "Investigasi AI berbasis bukti yang terikat pada dataset live yang tidak dapat diubah dan perhitungan sinyal yang dapat direproduksi."
+                : "Bounded, evidence-grounded AI investigations pinned to immutable live datasets and reproducible signal calculations."}
             </p>
           </div>
           <Link href={"/radar" as Route} className="btn btn-primary">
             {isId ? "+ Investigasi Baru dari Radar" : "+ New Investigation from Radar"}
           </Link>
         </div>
-      {liveInvestigations.length > 0 && (
-        <section className="live-run-banner" aria-label={isId ? "Investigasi live tersimpan" : "Stored live investigations"}>
-          <div><strong>{isId ? `${liveInvestigations.length} investigasi live tersimpan` : `${liveInvestigations.length} stored live investigations`}</strong><span>{isId ? "Investigation ini membaca signal dan evidence live dari PostgreSQL. Detail UI lengkap segera menggunakan sumber tersimpan ini." : "These investigations read live signals and evidence from PostgreSQL. The full detail UI is being switched to this stored source."}</span></div>
-        </section>
-      )}
       </div>
       <div className="flow-guide">
         <strong>{isId ? "Apa yang dilakukan AI?" : "What does the AI do?"}</strong>
-        <span>{isId ? "AI membaca signal dan evidence yang sudah tersedia untuk menyusun interpretasi. AI tidak menghitung ulang skor dan tidak boleh membuat angka atau sumber baru." : "The AI reads the available signal and evidence to form interpretations. It does not recalculate scores and must not invent numbers or sources."}</span>
+        <span>{isId ? "AI membaca signal dan evidence live yang sudah tersedia untuk menyusun interpretasi. AI tidak menghitung ulang skor dan tidak boleh membuat angka atau sumber baru." : "The AI reads the available live signal and evidence to form interpretations. It does not recalculate scores and must not invent numbers or sources."}</span>
         <small>{isId ? "Periksa supporting evidence, counterevidence, dan data gaps sebelum memakai brief." : "Review supporting evidence, counterevidence, and data gaps before using a brief."}</small>
       </div>
 
@@ -107,7 +116,13 @@ export default function InvestigationsPage() {
         </button>
       </section>
 
-      {/* Table of Investigations */}
+      {filtered.length === 0 ? (
+        <div className="card" style={{ padding: "32px", textAlign: "center" }}>
+          <h3>{isId ? "Belum ada investigasi live" : "No live investigations yet"}</h3>
+          <p style={{ color: "var(--slate-500)" }}>{isId ? "Buka sebuah run live dari radar dan jalankan investigasi untuk melihatnya di sini." : "Open a live run from the radar and start an investigation to see it here."}</p>
+          <Link href={"/radar" as Route} className="btn btn-primary">{isId ? "Buka Radar" : "Open Radar"}</Link>
+        </div>
+      ) : (
       <div className="table-container">
         <div className="table-scroll">
           <table>
@@ -116,9 +131,8 @@ export default function InvestigationsPage() {
                 <th scope="col">{isId ? "Kohort Sektor" : "Sector Cohort"}</th>
                 <th scope="col">{isId ? "Pertanyaan Analis" : "Analyst Inquiry"}</th>
                 <th scope="col">{isId ? "Status" : "Status"}</th>
-                <th scope="col">{isId ? "Model / Penyedia" : "Model / Provider"}</th>
                 <th scope="col">{isId ? "Mode Data" : "Data Mode"}</th>
-                <th scope="col">{isId ? "Riwayat Aktivitas Alat" : "Logged Events"}</th>
+                <th scope="col">{isId ? "Dibuat" : "Created"}</th>
                 <th scope="col">{isId ? "Tindakan" : "Actions"}</th>
               </tr>
             </thead>
@@ -140,13 +154,13 @@ export default function InvestigationsPage() {
                 return (
                   <tr key={inv.id}>
                     <td>
-                      <div style={{ fontWeight: 700, color: "var(--slate-950)" }}>{inv.cohortId}</div>
+                      <div style={{ fontWeight: 700, color: "var(--slate-950)" }}>{inv.brief?.cohortId ?? "—"}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", fontFamily: "var(--font-mono)" }}>
-                        {inv.period}
+                        {inv.brief?.period ?? "—"}
                       </div>
                     </td>
                     <td style={{ maxWidth: "340px", fontSize: "0.875rem" }}>
-                      <div style={{ fontWeight: 600, color: "var(--slate-900)" }}>{inv.question}</div>
+                      <div style={{ fontWeight: 600, color: "var(--slate-900)" }}>{inv.brief?.investigationQuestions?.[0] ?? "—"}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", marginTop: "2px" }}>
                         ID: <code style={{ fontSize: "0.6875rem" }}>{inv.id}</code>
                       </div>
@@ -156,14 +170,11 @@ export default function InvestigationsPage() {
                         {statusText}
                       </span>
                     </td>
-                    <td style={{ fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
-                      {inv.model}
-                    </td>
                     <td>
-                      <DataModeBadge mode={inv.dataMode} size="sm" />
+                      <DataModeBadge mode="live" size="sm" />
                     </td>
                     <td className="tabular-nums" style={{ fontSize: "0.8125rem" }}>
-                      {isId ? `${inv.events.length} panggilan alat` : `${inv.events.length} tool calls`}
+                      {new Date(inv.created_at).toLocaleString(isId ? "id-ID" : "en-US")}
                     </td>
                     <td>
                       <Link href={`/investigations/${inv.id}` as Route} className="btn btn-secondary btn-sm">
@@ -177,6 +188,7 @@ export default function InvestigationsPage() {
           </table>
         </div>
       </div>
+      )}
     </AppShell>
   );
 }

@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { SignalDirectionBadge } from "../components/ui/SignalDirectionBadge";
 import { InlineSparkline } from "../components/ui/InlineSparkline";
-import { IconArrowRight, IconShieldCheck, IconInfoCircle } from "../components/ui/Icons";
+import { IconArrowRight, IconShieldCheck } from "../components/ui/Icons";
 import type { SectorSignalSummary } from "../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../lib/i18n";
@@ -22,6 +22,12 @@ export default function OverviewPage() {
   }, []);
   const [hoveredSector, setHoveredSector] = useState<SectorSignalSummary | null>(null);
   const [matrixView, setMatrixView] = useState<"chart" | "table">("chart");
+  const [latestInvestigation, setLatestInvestigation] = useState<{ id: string; status: string; brief: { cohortId?: string; investigationQuestions?: string[] } | null } | null>(null);
+  const [latestBrief, setLatestBrief] = useState<{ id: string; title: string; cohort_id: string; status: string; current_version: number } | null>(null);
+  useEffect(() => {
+    void fetch("/api/v1/investigations/live").then((r) => r.ok ? r.json() : null).then((p) => setLatestInvestigation(p?.investigations?.[0] ?? null)).catch(() => setLatestInvestigation(null));
+    void fetch("/api/v1/briefs/live").then((r) => r.ok ? r.json() : null).then((p) => setLatestBrief(p?.briefs?.[0] ?? null)).catch(() => setLatestBrief(null));
+  }, []);
 
   const pressureSectors = sectors.filter((s) => s.cohortSignal.label === "risk");
   const opportunitySectors = sectors.filter((s) => s.cohortSignal.label === "opportunity");
@@ -84,18 +90,10 @@ export default function OverviewPage() {
           <li><span className="orientation-step-number">3</span><div><strong>{isId ? "Buat brief" : "Make a brief"}</strong><span>{isId ? "Uji interpretasi dengan AI dan counterevidence." : "Test interpretations with AI and counterevidence."}</span></div></li>
         </ol>
       </section>
-      {liveSectors.length === 0 ? (
-        <div className="demo-notice" role="note">
-          <IconInfoCircle size={16} />
-          <span><strong>{isId ? "Mode demo sintetis:" : "Synthetic demo mode:"}</strong>{" "}{isId ? "Angka di halaman ini adalah data simulasi untuk memahami alur produk, bukan temuan ekonomi riil." : "The figures on this page are simulated to demonstrate the product flow, not real economic findings."}</span>
-          <Link href={"/data" as Route}>{isId ? "Pelajari metodologi" : "Learn about the methodology"} <IconArrowRight size={12} /></Link>
-        </div>
-      ) : (
-        <div className="live-run-banner" role="status">
-          <span><strong>{isId ? "Data langsung aktif:" : "Live data active:"}</strong>{" "}{isId ? "Ringkasan ini membaca lima signal run live dari PostgreSQL." : "This summary reads five live signal runs from PostgreSQL."}</span>
-          <Link href={"/radar" as Route}>{isId ? "Buka radar live" : "Open live radar"} <IconArrowRight size={12} /></Link>
-        </div>
-      )}
+      <div className="live-run-banner" role="status">
+        <span><strong>{isId ? "Data langsung aktif:" : "Live data active:"}</strong>{" "}{isId ? `Ringkasan ini membaca ${liveSectors.length} signal run live dari PostgreSQL.` : `This summary reads ${liveSectors.length} live signal runs from PostgreSQL.`}</span>
+        <Link href={"/radar" as Route}>{isId ? "Buka radar live" : "Open live radar"} <IconArrowRight size={12} /></Link>
+      </div>
       <div className="section-guide">
         <div><span className="section-guide-label">{isId ? "RINGKASAN SINYAL" : "SIGNAL SUMMARY"}</span><p>{isId ? "Angka berikut merangkum pola yang ditemukan. Buka radar untuk melihat perusahaan di baliknya." : "These figures summarize detected patterns. Open the radar to see the companies behind them."}</p></div>
         <span className="help-chip" title={isId ? "Skor mengukur kekuatan pola heuristik, bukan probabilitas." : "Scores measure heuristic pattern strength, not probability."}>ⓘ {isId ? "Cara membaca skor" : "How to read scores"}</span>
@@ -286,7 +284,7 @@ export default function OverviewPage() {
                     </td>
                     <td style={{ fontSize: "0.75rem", maxWidth: "260px" }}>{s.dominantDriver}</td>
                     <td style={{ textAlign: "right" }}>
-                      <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
+                      <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-secondary btn-sm">
                         {isId ? "Periksa →" : "Inspect →"}
                       </Link>
                     </td>
@@ -399,7 +397,7 @@ export default function OverviewPage() {
                       {s.counterSignalSummary}
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
+                      <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-secondary btn-sm">
                         {isId ? "Rincian" : "Deep Dive"} <IconArrowRight size={12} />
                       </Link>
                     </td>
@@ -427,29 +425,26 @@ export default function OverviewPage() {
                 {isId ? "Lihat Semua" : "View All"} <IconArrowRight size={12} />
               </Link>
             </div>
-            <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderLeft: "3px solid var(--risk-600)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>
-                  {isId ? "Energi — Pertambangan Batubara" : "Energy — Coal Mining & Quarrying"}
-                </strong>
-                <span className="badge badge-risk">{isId ? "Tekanan" : "Pressure"}</span>
+            {latestInvestigation ? (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderLeft: "3px solid var(--risk-600)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>{latestInvestigation.brief?.cohortId ?? "—"}</strong>
+                  <span className={`badge ${latestInvestigation.status === "completed" ? "badge-opportunity" : "badge-neutral"}`}>{latestInvestigation.status.toUpperCase()}</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
+                  "{latestInvestigation.brief?.investigationQuestions?.[0] ?? "—"}"
+                </div>
+                <div style={{ marginTop: "8px" }}>
+                  <Link href={`/investigations/${latestInvestigation.id}` as Route} style={{ fontSize: "0.75rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    {isId ? "Buka Ruang Investigasi" : "Open Investigation Workspace"} <IconArrowRight size={12} />
+                  </Link>
+                </div>
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
-                {isId
-                  ? "“Apakah kontraksi margin laba batubara termal terjadi merata di emiten menengah?”"
-                  : "“Is thermal coal margin compression shared broadly across mid-caps?”"}
+            ) : (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--slate-500)" }}>
+                {isId ? "Belum ada investigasi live. Jalankan investigasi dari radar." : "No live investigations yet. Start one from the radar."}
               </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", marginTop: "6px", display: "flex", gap: "10px" }}>
-                <span>{isId ? "Selesai" : "Completed"}</span>
-                <span>{isId ? "6 Panggilan Alat" : "6 Tool Runs"}</span>
-                <span>Ollama Qwen2.5-7B</span>
-              </div>
-              <div style={{ marginTop: "8px" }}>
-                <Link href={"/investigations/inv-energy-coal-demo" as Route} style={{ fontSize: "0.75rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  {isId ? "Buka Ruang Investigasi" : "Open Investigation Workspace"} <IconArrowRight size={12} />
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Decision Briefs */}
@@ -465,31 +460,26 @@ export default function OverviewPage() {
                 {isId ? "Lihat Semua" : "View All"} <IconArrowRight size={12} />
               </Link>
             </div>
-            <div style={{ padding: "12px 14px", background: "var(--primary-50)", borderLeft: "3px solid var(--primary-800)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>
-                  {isId ? "Pergeseran Sektor Batubara Q1-2026: Kontraksi Margin Ekspor" : "Q1-2026 Coal Sector Shift: Export Margin Contraction"}
-                </strong>
-                <span className="badge badge-snapshot">v1.0 Final</span>
+            {latestBrief ? (
+              <div style={{ padding: "12px 14px", background: "var(--primary-50)", borderLeft: "3px solid var(--primary-800)", borderRadius: "var(--radius-sm)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <strong style={{ color: "var(--slate-950)", fontSize: "0.8125rem" }}>{latestBrief.title}</strong>
+                  <span className="badge badge-snapshot">v{latestBrief.current_version}.0</span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
+                  {isId ? "Kohort: " : "Cohort: "}<strong>{latestBrief.cohort_id}</strong>
+                </div>
+                <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                  <Link href={`/briefs/${latestBrief.id}` as Route} className="btn btn-primary btn-sm">
+                    {isId ? "Baca Laporan" : "Read Brief"} <IconArrowRight size={12} />
+                  </Link>
+                </div>
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
-                {isId
-                  ? "Laporan keputusan resmi dengan 15 sitasi terverifikasi, register bukti sanggahan, dan konteks makroekonomi BPS."
-                  : "Official decision brief with 15 verified citations, counterevidence register, and BPS macroeconomic context."}
+            ) : (
+              <div style={{ padding: "12px 14px", background: "var(--slate-50)", borderRadius: "var(--radius-sm)", fontSize: "0.8125rem", color: "var(--slate-500)" }}>
+                {isId ? "Belum ada brief live." : "No live briefs yet."}
               </div>
-              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-                <Link href={"/briefs/brief-energy-coal-q1-2026" as Route} className="btn btn-primary btn-sm">
-                  {isId ? "Baca Laporan" : "Read Brief"} <IconArrowRight size={12} />
-                </Link>
-                <a
-                  href="/api/briefs/brief-energy-coal-q1-2026/export"
-                  download="brief-energy-coal-q1-2026.md"
-                  className="btn btn-secondary btn-sm"
-                >
-                  {isId ? "Ekspor .md" : "Export .md"}
-                </a>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

@@ -4,20 +4,11 @@ import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { SignalDirectionBadge } from "../../components/ui/SignalDirectionBadge";
-import { InlineSparkline } from "../../components/ui/InlineSparkline";
 import { SECTOR_DEFINITIONS, type SectorSignalSummary } from "../../domain/sectors-dataset";
 import type { Route } from "next";
 import { useLanguage } from "../../lib/i18n";
 import { formatScore } from "../../lib/formatters";
 import { IconArrowRight } from "../../components/ui/Icons";
-
-const SECTOR_SPARKLINE_DATA: Record<string, number[]> = {
-  "energy-coal": [20, 30, 50, 65, 75],
-  "consumer-staples": [40, 55, 65, 72, 80],
-  "basic-materials-nickel": [35, 45, 50, 60, 70],
-  "retail-trade": [40, 42, 45, 48, 50],
-  "financials-banks": [25, 30, 35, 40, 45],
-};
 
 export default function RadarPage() {
   const { language, t } = useLanguage();
@@ -160,7 +151,7 @@ export default function RadarPage() {
           <div>
             <strong>{isId ? "Signal live tersedia" : "Live signal available"}</strong>
             <span>{isId ? `Dataset live dengan ${liveRun.cohort_result.eligibleCount ?? 0}/${liveRun.cohort_result.totalMembers ?? 0} perusahaan eligible.` : `Live dataset with ${liveRun.cohort_result.eligibleCount ?? 0}/${liveRun.cohort_result.totalMembers ?? 0} eligible companies.`}</span>
-            <small>{isId ? "Radar demo di bawah tetap sintetis. Buka hasil tersimpan untuk melihat run live." : "The demo radar below remains synthetic. Open the stored result to inspect the live run."}</small>
+            <small>{isId ? "Buka putaran tersimpan untuk melihat evidence per perusahaan." : "Open the stored run to inspect company-level evidence."}</small>
           </div>
           <Link className="btn btn-sm btn-primary" href={`/radar/stored/${liveRun.id}` as Route}>{isId ? "Buka run live" : "Open live run"} <IconArrowRight size={12} /></Link>
         </section>
@@ -291,15 +282,6 @@ export default function RadarPage() {
             const isRisk = s.cohortSignal.label === "risk";
             const isOpp = s.cohortSignal.label === "opportunity";
             const isMixed = s.cohortSignal.label === "mixed";
-            const sparkData = SECTOR_SPARKLINE_DATA[s.id] || [50, 50, 50, 50, 50];
-            const sparkColor = isRisk
-              ? "var(--risk-600)"
-              : isOpp
-              ? "var(--opp-600)"
-              : isMixed
-              ? "var(--mixed-600)"
-              : "var(--slate-500)";
-
             const borderAccent = isRisk
               ? "var(--risk-600)"
               : isOpp
@@ -372,29 +354,6 @@ export default function RadarPage() {
                     </div>
                   </div>
 
-                  {/* 5-Quarter Trend Sparkline Banner */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--white)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-light)", marginBottom: "12px" }}>
-                    <div>
-                      <div style={{ fontSize: "0.6875rem", color: "var(--slate-500)", textTransform: "uppercase", fontWeight: 700 }}>
-                        {isId ? "Trajektori 5-Kuartal" : "5-Q Trajectory"}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: isRisk ? "var(--risk-700)" : isOpp ? "var(--opp-700)" : "var(--slate-700)", fontWeight: 700 }}>
-                        {isRisk
-                          ? (isId ? "Peningkatan Risiko (+55pt)" : "Ascending Risk (+55pts)")
-                          : isOpp
-                          ? (isId ? "Peluang Meluas (+40pt)" : "Expanding Opportunity (+40pts)")
-                          : (isId ? "Konsolidasi" : "Consolidating")}
-                      </div>
-                    </div>
-                    <InlineSparkline
-                      data={sparkData}
-                      color={sparkColor}
-                      width={100}
-                      height={28}
-                      fill
-                      ariaLabel={`${isId ? "Trajektori 5-kuartal untuk" : "5-quarter trajectory for"} ${getSectorDisplayName(s)}`}
-                    />
-                  </div>
 
                   {/* Key Driver Callout */}
                   <div style={{ fontSize: "0.8125rem", color: "var(--slate-800)", marginBottom: "12px", lineHeight: 1.4 }}>
@@ -433,7 +392,7 @@ export default function RadarPage() {
                   <div style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>
                     Dataset: <code style={{ fontSize: "0.6875rem" }}>{s.datasetId}</code>
                   </div>
-                  <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-primary btn-sm">
+                  <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-primary btn-sm">
                     {isId ? "Buka Sinyal & Bukti →" : "Open Signal & Evidence →"}
                   </Link>
                 </div>
@@ -449,7 +408,6 @@ export default function RadarPage() {
                 <tr>
                   <th scope="col">{isId ? "Sektor / Industri" : "Cohort / Industry"}</th>
                   <th scope="col">{isId ? "Arah Sinyal" : "Signal Direction"}</th>
-                  <th scope="col" style={{ width: "110px" }}>{isId ? "Tren 5-Kuartal" : "5-Q Trend"}</th>
                   <th scope="col" style={{ textAlign: "right" }}>{isId ? "Risiko / Peluang" : "Risk / Opp"}</th>
                   <th scope="col" style={{ textAlign: "right" }}>{isId ? "Sebaran" : "Breadth"}</th>
                   <th scope="col" style={{ textAlign: "right" }}>{isId ? "Cakupan" : "Coverage"}</th>
@@ -463,16 +421,6 @@ export default function RadarPage() {
                   const def = SECTOR_DEFINITIONS.find((sd) => sd.id === s.id);
                   const tickers = def?.companies.map((c) => c.symbol).slice(0, 4) || [];
                   const isRisk = s.cohortSignal.label === "risk";
-                  const isOpp = s.cohortSignal.label === "opportunity";
-                  const isMixed = s.cohortSignal.label === "mixed";
-                  const sparkData = SECTOR_SPARKLINE_DATA[s.id] || [50, 50, 50, 50, 50];
-                  const sparkColor = isRisk
-                    ? "var(--risk-600)"
-                    : isOpp
-                    ? "var(--opp-600)"
-                    : isMixed
-                    ? "var(--mixed-600)"
-                    : "var(--slate-500)";
 
                   return (
                     <tr key={s.id}>
@@ -481,16 +429,6 @@ export default function RadarPage() {
                         <div style={{ fontSize: "0.75rem", color: "var(--slate-500)" }}>{s.industry}</div>
                       </td>
                       <td><SignalDirectionBadge direction={s.cohortSignal.label} size="sm" /></td>
-                      <td>
-                        <InlineSparkline
-                          data={sparkData}
-                          color={sparkColor}
-                          width={90}
-                          height={22}
-                          fill
-                          ariaLabel={`${isId ? "Tren 5-kuartal untuk" : "5-quarter trend for"} ${getSectorDisplayName(s)}`}
-                        />
-                      </td>
                       <td className="tabular-nums" style={{ textAlign: "right" }}>
                         <strong
                           style={{ color: "var(--risk-700)" }}
@@ -527,7 +465,7 @@ export default function RadarPage() {
                       </td>
                       <td style={{ fontSize: "0.8125rem", maxWidth: "260px" }}>{s.dominantDriver}</td>
                       <td style={{ textAlign: "right" }}>
-                        <Link href={`/radar/${s.runId}/${s.id}` as Route} className="btn btn-secondary btn-sm">
+                        <Link href={`/radar/stored/${s.runId}` as Route} className="btn btn-secondary btn-sm">
                           {isId ? "Periksa →" : "Inspect →"}
                         </Link>
                       </td>

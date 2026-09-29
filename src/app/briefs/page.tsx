@@ -4,10 +4,21 @@ import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { DataModeBadge } from "../../components/ui/DataModeBadge";
-import { listBriefs } from "../../server/briefs/brief-service";
 import { IconDownload, IconArrowRight } from "../../components/ui/Icons";
 import { useLanguage } from "../../lib/i18n";
 import type { Route } from "next";
+
+interface LiveBriefRow {
+  id: string;
+  investigation_id: string;
+  cohort_id: string;
+  title: string;
+  status: "draft" | "reviewed" | "final";
+  current_version: number;
+  created_at: string;
+  updated_at: string;
+  period: string | null;
+}
 
 export default function BriefsPage() {
   const { language } = useLanguage();
@@ -15,25 +26,27 @@ export default function BriefsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  const [liveBriefs, setLiveBriefs] = useState<{ id: string; title: string; status: string; current_version: number; data_mode: string }[]>([]);
-  useEffect(() => { void fetch("/api/v1/briefs/live").then((response) => response.ok ? response.json() : null).then((payload) => setLiveBriefs(payload?.briefs ?? [])).catch(() => setLiveBriefs([])); }, []);
-  const briefs = useMemo(() => listBriefs(), []);
+  const [briefs, setBriefs] = useState<LiveBriefRow[] | null>(null);
+  useEffect(() => { void fetch("/api/v1/briefs/live").then((response) => response.ok ? response.json() : null).then((payload) => setBriefs(payload?.briefs ?? [])).catch(() => setBriefs([])); }, []);
 
   const filtered = useMemo(() => {
+    if (!briefs) return [];
     return briefs.filter((b) => {
       if (statusFilter !== "all" && b.status !== statusFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
-        const matchT = b.title.toLowerCase().includes(q);
-        const matchC = b.cohortId.toLowerCase().includes(q);
-        if (!matchT && !matchC) return false;
+        if (!b.title.toLowerCase().includes(q) && !b.cohort_id.toLowerCase().includes(q)) return false;
       }
       return true;
     });
   }, [briefs, statusFilter, search]);
 
+  if (!briefs) {
+    return <AppShell dataMode="live"><div className="card" style={{ padding: "48px", textAlign: "center" }}><h2>{isId ? "Memuat brief live..." : "Loading live briefs..."}</h2><p>{isId ? "Daftar ini hanya membaca brief yang tersimpan di PostgreSQL." : "This list only reads briefs persisted in PostgreSQL."}</p></div></AppShell>;
+  }
+
   return (
-    <AppShell dataMode="synthetic">
+    <AppShell dataMode="live">
       <div className="page-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
           <div>
@@ -48,24 +61,14 @@ export default function BriefsPage() {
             <h1>{isId ? "Ringkasan Keputusan Kabinet & Kebijakan" : "Cabinet & Policy Decision Briefs"}</h1>
             <p className="page-subtitle">
               {isId
-                ? "Ringkasan keputusan yang dapat diedit, memiliki riwayat versi, dan disitasi secara lengkap untuk mensintesis data emiten ke dalam wawasan kebijakan."
-                : "Editable, versioned, and cited deliverables synthesizing corporate observations into actionable policy insights."}
+                ? "Ringkasan keputusan yang disitasi secara lengkap, dihasilkan langsung dari investigasi live yang tersimpan di PostgreSQL."
+                : "Fully cited deliverables generated directly from persisted live investigations in PostgreSQL."}
             </p>
           </div>
           <Link href={"/investigations" as Route} className="btn btn-primary">
-            {isId ? "+ Ringkasan Baru dari Investigasi" : "+ New Brief from Investigation"}
+            {isId ? "Buka Investigasi" : "Open Investigations"}
           </Link>
         </div>
-      {liveBriefs.length > 0 && (
-        <section className="live-run-banner" aria-label={isId ? "Brief live tersimpan" : "Stored live briefs"}>
-          <div><strong>{isId ? `${liveBriefs.length} brief live tersimpan` : `${liveBriefs.length} stored live briefs`}</strong><span>{isId ? "Brief ini berasal dari investigation live yang tersimpan di PostgreSQL. Detail UI lengkap sedang dialihkan ke sumber tersimpan ini." : "These briefs come from persisted live investigations in PostgreSQL. The full detail UI is being switched to this stored source."}</span></div>
-        </section>
-      )}
-      </div>
-      <div className="flow-guide">
-        <strong>{isId ? "Apa isi brief ini?" : "What is a brief for?"}</strong>
-        <span>{isId ? "Brief merangkum observasi, interpretasi, bukti yang mendukung, bukti yang bertentangan, dan pertanyaan lanjutan dalam format yang dapat ditelaah." : "A brief combines observations, interpretations, supporting evidence, contradictory evidence, and follow-up questions in a reviewable format."}</span>
-        <small>{isId ? "Draf sintetis tetap perlu ditelaah manusia sebelum dipakai untuk keputusan." : "Synthetic drafts still require human review before decision use."}</small>
       </div>
 
       {/* Filter Bar */}
@@ -107,7 +110,13 @@ export default function BriefsPage() {
         </button>
       </section>
 
-      {/* Briefs Table */}
+      {filtered.length === 0 ? (
+        <div className="card" style={{ padding: "32px", textAlign: "center" }}>
+          <h3>{isId ? "Belum ada brief live" : "No live briefs yet"}</h3>
+          <p style={{ color: "var(--slate-500)" }}>{isId ? "Jalankan investigasi live dari radar untuk menghasilkan brief di sini." : "Run a live investigation from the radar to generate a brief here."}</p>
+          <Link href={"/investigations" as Route} className="btn btn-primary">{isId ? "Buka Investigasi" : "Open Investigations"}</Link>
+        </div>
+      ) : (
       <div className="table-container">
         <div className="table-scroll">
           <table>
@@ -132,7 +141,7 @@ export default function BriefsPage() {
                     : "badge-neutral";
                 const statusText =
                   b.status === "final"
-                    ? (isId ? "FINAL" : "FINAL")
+                    ? "FINAL"
                     : b.status === "reviewed"
                     ? (isId ? "DITELAAH" : "REVIEWED")
                     : (isId ? "DRAF" : "DRAFT");
@@ -142,15 +151,15 @@ export default function BriefsPage() {
                     <td>
                       <div style={{ fontWeight: 700, color: "var(--slate-950)" }}>{b.title}</div>
                       <div style={{ fontSize: "0.75rem", color: "var(--slate-500)", marginTop: "2px" }}>
-                        {isId ? "Kohort: " : "Cohort: "}<strong>{b.cohortId}</strong> · {isId ? "Investigasi Sumber: " : "Source Investigation: "}<code>{b.investigationId}</code>
+                        {isId ? "Kohort: " : "Cohort: "}<strong>{b.cohort_id}</strong> · {isId ? "Investigasi Sumber: " : "Source Investigation: "}<code>{b.investigation_id}</code>
                       </div>
                     </td>
                     <td className="tabular-nums" style={{ fontSize: "0.875rem" }}>
-                      {b.period}
+                      {b.period ?? "—"}
                     </td>
                     <td>
                       <span className="badge badge-snapshot">
-                        v{b.currentVersion}.0
+                        v{b.current_version}.0
                       </span>
                     </td>
                     <td>
@@ -159,10 +168,10 @@ export default function BriefsPage() {
                       </span>
                     </td>
                     <td>
-                      <DataModeBadge mode={b.dataMode} size="sm" />
+                      <DataModeBadge mode="live" size="sm" />
                     </td>
                     <td className="tabular-nums" style={{ fontSize: "0.8125rem" }}>
-                      {new Date(b.updatedAt).toLocaleDateString(isId ? "id-ID" : "en-US")} {new Date(b.updatedAt).toLocaleTimeString(isId ? "id-ID" : "en-US", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(b.updated_at).toLocaleDateString(isId ? "id-ID" : "en-US")} {new Date(b.updated_at).toLocaleTimeString(isId ? "id-ID" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "6px" }}>
@@ -170,7 +179,7 @@ export default function BriefsPage() {
                           {isId ? "Telaah" : "Review"} <IconArrowRight size={12} />
                         </Link>
                         <a
-                          href={`/api/briefs/${b.id}/export?lang=${language}`}
+                          href={`/api/v1/investigations/${b.investigation_id}/export?lang=${language}`}
                           download={`${b.id}.md`}
                           className="btn btn-secondary btn-sm"
                           title={isId ? "Unduh ringkasan Markdown" : "Download Markdown brief"}
@@ -187,6 +196,7 @@ export default function BriefsPage() {
           </table>
         </div>
       </div>
+      )}
     </AppShell>
   );
 }

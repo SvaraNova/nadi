@@ -9,10 +9,10 @@ export async function GET() {
     system: "NADI — National Discovery Intelligence",
     version: "0.1.0",
     methodVersion: "0.1",
-    dataMode: isDatabaseConfigured ? "snapshot" : "synthetic",
+    dataMode: isDatabaseConfigured ? "live" : "unavailable",
     database: {
       configured: isDatabaseConfigured,
-      status: isDatabaseConfigured ? "connected" : "in_memory_synthetic",
+      status: isDatabaseConfigured ? "connected" : "not_configured",
     },
     capabilities: {
       radar: true,

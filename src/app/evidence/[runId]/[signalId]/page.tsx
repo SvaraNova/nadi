@@ -35,7 +35,7 @@ export default async function PersistedEvidence({ params }: { params: Promise<{ 
   const { run, company, rows } = evidence;
   return <main className="evidence">
     <Link href={`/radar?run=${runId}`}>Back to stored radar</Link>
-    <p className="eyebrow">{run.mode === "synthetic" ? "SYNTHETIC DEMO" : run.mode.toUpperCase()} · STORED EVIDENCE</p>
+    <p className="eyebrow">{run.mode.toUpperCase()} · STORED EVIDENCE</p>
     <h1>{company.symbol}</h1>
     <div className="evidence-summary">
       <div><span>Periode analisis</span><strong>{run.config_json?.target ?? "Tidak diketahui"}</strong></div>

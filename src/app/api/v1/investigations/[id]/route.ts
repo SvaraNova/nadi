@@ -16,7 +16,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!row || row.mode !== "live") return NextResponse.json({ error: "investigation_not_found" }, { status: 404 });
     const events = await pool.query("SELECT type,tool,message,occurred_at::text AS at FROM investigation_event WHERE investigation_run_id=$1 ORDER BY sequence", [id]);
     const brief = row.brief;
-    return NextResponse.json({ investigation: { id: row.id, cohortId: brief?.cohortId ?? "live-cohort", signalRunId: row.signal_run_id, question: brief?.investigationQuestions?.[0] ?? "Live signal review", status: row.status, dataMode: row.mode, period: brief?.period ?? row.config_json?.target ?? "unknown", methodVersion: row.method_version, model: "Deterministic live review", createdAt: row.created_at, finishedAt: row.finished_at ?? undefined, events: events.rows, brief } });
+    const modelEvent = events.rows.find((e: { message: string }) => /OpenAI interpretation generated with (.+)\./.test(e.message));
+    const model = modelEvent ? modelEvent.message.match(/OpenAI interpretation generated with (.+)\./)[1] : "Deterministic live review";
+    return NextResponse.json({ investigation: { id: row.id, cohortId: brief?.cohortId ?? "live-cohort", signalRunId: row.signal_run_id, question: brief?.investigationQuestions?.[0] ?? "Live signal review", status: row.status, dataMode: row.mode, period: brief?.period ?? row.config_json?.target ?? "unknown", methodVersion: row.method_version, model, createdAt: row.created_at, finishedAt: row.finished_at ?? undefined, events: events.rows, brief } });
   } catch { return NextResponse.json({ error: "database_query_failed" }, { status: 503 }); }
   finally { await pool.end(); }
 }
