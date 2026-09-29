@@ -1,5 +1,6 @@
 import { runInvestigation, type InvestigationBrief, type InvestigationEvent, type InvestigationStatus, type ToolContext } from "../../domain/investigation";
 import { allowedInvestigationTools, type RegisteredTool } from "./tool-registry";
+import { createHttpLlmProvider } from "./llm";
 import { buildSectorSignalRuns, SECTOR_DEFINITIONS } from "../../domain/sectors-dataset";
 
 export interface StoredInvestigationRecord {
@@ -153,6 +154,20 @@ export function createInvestigation(cohortId: string, signalRunId: string, quest
   return record;
 }
 
+function createConfiguredLlmProvider() {
+  if ((process.env.LLM_PROVIDER ?? "").toLowerCase() !== "openai") return null;
+  const apiKey = process.env.LLM_API_KEY;
+  const model = process.env.LLM_MODEL ?? "gpt-4o-mini";
+  if (!apiKey || !model) return null;
+  return createHttpLlmProvider({
+    endpoint: process.env.LLM_ENDPOINT ?? "https://api.openai.com/v1/chat/completions",
+    apiKey,
+    model,
+    provider: "openai",
+    timeoutMs: 30_000,
+  });
+}
+
 export async function executeInvestigation(id: string): Promise<StoredInvestigationRecord> {
   const inv = investigationStore.get(id);
   if (!inv) throw new Error("INVESTIGATION_NOT_FOUND");
@@ -250,8 +265,24 @@ export async function executeInvestigation(id: string): Promise<StoredInvestigat
     }
   );
 
+  let brief = res.brief;
+  const llmProvider = createConfiguredLlmProvider();
+  if (llmProvider && res.status === "completed") {
+    inv.events.push({ type: "progress", at: new Date().toISOString(), message: "Generating evidence-grounded analyst interpretation with OpenAI." });
+    try {
+      const response = await llmProvider.complete({
+        system: "You are NADI, an evidence-first economic analyst. Write one concise Indonesian paragraph explaining the observed sector signal. Use only the supplied tool results. Do not invent numbers, causes, citations, or external facts. State uncertainty when evidence is insufficient.",
+        user: JSON.stringify({ question: inv.question, sector: sector.name, period: "Q1-2026 vs Q1-2025", toolResults: res.events.filter((event) => event.type === "tool_completed").map((event) => ({ tool: event.tool, evidence: event.message })) }),
+      });
+      brief = { ...brief, summary: response.text.trim() };
+      inv.model = `${response.provider} (${response.model})`;
+      inv.events.push({ type: "progress", at: new Date().toISOString(), message: `OpenAI interpretation generated with ${response.model}.` });
+    } catch (error) {
+      inv.events.push({ type: "failed", at: new Date().toISOString(), message: error instanceof Error ? `OpenAI interpretation failed: ${error.message}` : "OpenAI interpretation failed" });
+    }
+  }
   inv.status = res.status;
-  inv.brief = res.brief;
+  inv.brief = brief;
   inv.finishedAt = new Date().toISOString();
   return inv;
 }
