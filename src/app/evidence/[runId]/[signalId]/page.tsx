@@ -10,8 +10,27 @@ export default async function PersistedEvidence({ params }: { params: Promise<{ 
   if (!process.env.DATABASE_URL) return <main><h1>Evidence unavailable</h1><p>The database connection is not configured.</p></main>;
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 5000 });
   let evidence, comparison;
-  try { evidence = await readEvidence(pool, runId, signalId); comparison = evidence ? await readPublicComparison(pool, "energy-coal", evidence.run.config_json?.target ?? "") : null; }
-  finally { await pool.end(); }
+  let databaseError = false;
+  try {
+    evidence = await readEvidence(pool, runId, signalId);
+    comparison = evidence ? await readPublicComparison(pool, "energy-coal", evidence.run.config_json?.target ?? "") : null;
+  } catch (error) {
+    databaseError = true;
+    console.error("Evidence database unavailable", error);
+  } finally {
+    await pool.end();
+  }
+  if (databaseError) {
+    return (
+      <main className="evidence">
+        <Link href={`/radar?run=${runId}`}>Back to stored radar</Link>
+        <p className="eyebrow">STORED EVIDENCE</p>
+        <h1>Evidence temporarily unavailable</h1>
+        <p>The database connection timed out while loading this evidence record. The stored signal was not changed.</p>
+        <p>Retry after the database is available.</p>
+      </main>
+    );
+  }
   if (!evidence) notFound();
   const { run, company, rows } = evidence;
   return <main className="evidence">
