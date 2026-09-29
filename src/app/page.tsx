@@ -432,7 +432,7 @@ export default function OverviewPage() {
                   <span className={`badge ${latestInvestigation.status === "completed" ? "badge-opportunity" : "badge-neutral"}`}>{latestInvestigation.status.toUpperCase()}</span>
                 </div>
                 <div style={{ fontSize: "0.75rem", color: "var(--slate-700)", marginTop: "4px" }}>
-                  "{latestInvestigation.brief?.investigationQuestions?.[0] ?? "—"}"
+                  &quot;{latestInvestigation.brief?.investigationQuestions?.[0] ?? "—"}&quot;
                 </div>
                 <div style={{ marginTop: "8px" }}>
                   <Link href={`/investigations/${latestInvestigation.id}` as Route} style={{ fontSize: "0.75rem", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>

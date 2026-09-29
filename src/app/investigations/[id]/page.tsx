@@ -177,7 +177,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
             </div>
             <h1>{isId ? "Ruang Kerja Investigasi AI Terikat" : "Bounded AI Investigation Workspace"}</h1>
             <p className="page-subtitle">
-              {isId ? "Pertanyaan: " : "Inquiry: "}"<strong>{investigation.question}</strong>"
+              {isId ? "Pertanyaan: " : "Inquiry: "}&quot;<strong>{investigation.question}</strong>&quot;
             </p>
           </div>
 
