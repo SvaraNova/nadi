@@ -1450,6 +1450,13 @@ tbody td {
   .evidence-summary,
   .evidence-result { grid-template-columns: 1fr; }
 }
+
+.evidence-source-note {
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn-600);
+  background: var(--warn-50);
+  color: var(--warn-900) !important;
+}
 .loading-page { display: grid; gap: 18px; }
 .loading-breadcrumb { margin-bottom: 4px; }
 .loading-header { display: grid; gap: 10px; margin-bottom: 4px; }
