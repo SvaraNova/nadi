@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { use, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppShell } from "../../../components/layout/AppShell";
 import { DataModeBadge } from "../../../components/ui/DataModeBadge";
 import { EvidenceDrawer, type EvidenceRecord } from "../../../components/ui/EvidenceDrawer";
@@ -33,6 +33,7 @@ export default function InvestigationWorkspacePage({ params }: Props) {
   const { id } = use(params);
   const { language } = useLanguage();
   const isId = language === "id";
+  const searchParams = useSearchParams();
 
   const [investigation, setInvestigation] = useState<StoredInvestigationRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,18 +44,28 @@ export default function InvestigationWorkspacePage({ params }: Props) {
     let ignore = false;
     async function load() {
       try {
-        const res = await fetch(`/api/v1/investigations/${id}`);
-        const fallback = res.ok ? res : await fetch(`/api/investigations/${id}`);
-        if (fallback.ok && !ignore) {
-          const data = await fallback.json();
+        let response = await fetch(`/api/v1/investigations/${id}`);
+        if (!response.ok) response = await fetch(`/api/investigations/${id}`);
+        if (!response.ok) {
+          const cohortId = searchParams.get("cohort");
+          const signalRunId = searchParams.get("run");
+          const question = searchParams.get("q");
+          if (cohortId && signalRunId && question) {
+            response = await fetch("/api/investigations", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cohortId, signalRunId, question }),
+            });
+          }
+        }
+        if (response.ok && !ignore) {
+          const data = await response.json();
           setInvestigation(data.investigation);
         }
       } catch (err) {
         console.error(err);
       } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+        if (!ignore) setLoading(false);
       }
     }
     load();
