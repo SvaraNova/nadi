@@ -38,11 +38,6 @@ export function AppShell({
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // Close mobile nav on route change
-  useEffect(() => {
-    setIsMobileNavOpen(false);
-  }, [pathname]);
-
   // Lock body scroll while mobile nav is open
   useEffect(() => {
     if (isMobileNavOpen) {
